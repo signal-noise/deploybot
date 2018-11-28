@@ -25,45 +25,31 @@ provider:
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
 
 functions:
-  create:
-    handler: messages/receive.receive
+  command:
+    handler: slack/command.receive
     events:
       - http:
-          path: messages
+          path: slack/command
           method: post
           cors: true
-  # list:
-  #   handler: messages/list.list
-  #   events:
-  #     - http:
-  #         path: messages
-  #         method: get
-  #         cors: true
-  # get:
-  #   handler: messages/get.get
-  #   events:
-  #     - http:
-  #         path: messages/{id}
-  #         method: get
-  #         cors: true
-  # update:
-  #   handler: messages/update.update
-  #   events:
-  #     - http:
-  #         path: messages/{id}
-  #         method: put
-  #         cors: true
+  message:
+    handler: slack/message.send
+    events:
+      - http:
+          path: slack/message
+          method: post
+          cors: true
   # delete:
-  #   handler: messages/delete.delete
+  #   handler: slack/delete.delete
   #   events:
   #     - http:
-  #         path: messages/{id}
+  #         path: slack/{id}
   #         method: delete
   #         cors: true
 
 resources:
   Resources:
-    messagesDynamoDbTable:
+    slackDynamoDbTable:
       Type: "AWS::DynamoDB::Table"
       DeletionPolicy: Retain
       Properties:
