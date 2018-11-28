@@ -9,6 +9,8 @@ provider:
   runtime: python2.7
   environment:
     DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+    SLACK_WEBHOOK_URL: ${env:SLACK_WEBHOOK_URL}
+    SLACK_CHANNEL: ${env:SLACK_CHANNEL}
   iamRoleStatements:
     - Effect: Allow
       Action:
