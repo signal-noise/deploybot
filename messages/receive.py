@@ -6,7 +6,7 @@ import uuid
 
 import boto3
 
-from botocore.vendored import requests
+from urlparse import parse_qs
 
 dynamodb = boto3.resource('dynamodb')
 
@@ -27,7 +27,8 @@ def is_request_valid(token, team_id):
 def receive(event, context):
     logging.info(event)
     logging.info(event['body'])
-    data = json.loads(event['body'])
+    data = parse_qs(event['body'])
+    logging.info(data)
 
     response = {
         "statusCode": 200,
