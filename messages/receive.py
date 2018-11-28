@@ -26,7 +26,7 @@ def is_request_valid(token, team_id):
 
 def receive(event, context):
     logging.info(event)
-    logging.info(json.loads(event))
+    logging.info(event['body'])
     data = json.loads(event['body'])
 
     response = {
