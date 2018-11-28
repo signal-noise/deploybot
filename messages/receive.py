@@ -1,5 +1,6 @@
 import logging
 import os
+import json
 
 import boto3
 
@@ -51,12 +52,13 @@ def receive(event, context):
 
 def response(status, body):
     response = {
-        "statusCode": str(status),
+        "statusCode": int(status),
+        "isBase64Encoded": false,
         "headers": { 
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
         },
-        "body": body
+        "body": json.dumps(body)
     }
     logging.info(response)
     return response
