@@ -68,7 +68,7 @@ def slack_response(message, status=200):
     return response({
         "response_type": "ephemeral",
         "text": message
-   , status)
+    }, status)
 
 
 def call_function(command_text):
