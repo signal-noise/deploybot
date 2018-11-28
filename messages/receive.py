@@ -37,7 +37,7 @@ def receive(event, context):
     logging.info(data)
 
     response = {
-        "statusCode": 200,
+        "statusCode": '200',
         "body": {
             "response_type": "ephemeral",
             "text": "Something went wrong",
@@ -51,25 +51,35 @@ def receive(event, context):
 
     if not is_request_valid(data['token'], data['team_id']):
         logging.error("Authentication Failed")
-        response['statusCode'] = 403
+        response['statusCode'] = '403'
         response['body']['attachments'][0]['text'] = "Authentication Failed"
         return
 
     if len(data['text']) == 0:
         logging.error("No text in command")
-        response['statusCode'] = 401
-        response['body']['attachments'][0]['text'] = "No text in command - what would you like me to do?"
+        data['text'] = 'help'
         return
 
     if data['command'] not in ['/cimon']:
         logging.error("Unexpected command")
         raise Exception("Unexpected command.")
         
-    response['body']['text'] = help()
+    response['body']['text'] = call_function(data['text'])
     response['attachments'] = []
 
     logging.info(response)
     return response
+
+
+def call_function(command_text):
+    parts = command_text.split()
+    f = parts[0]
+    p = parts[1::]
+    try:
+        return locals()[f](*p)
+    except:
+        return "I didn't understand that, try `/cimon help`"
+
 
 def help():
     logging.info("Sending help text")
