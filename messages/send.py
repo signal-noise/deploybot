@@ -36,7 +36,7 @@ def send(event, context):
     # create a response
     response = {
         "statusCode": r.status_code,
-        "body": r.json()
+        "body": r.text
     }
 
     return response
