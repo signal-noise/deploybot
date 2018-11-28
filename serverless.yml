@@ -11,6 +11,8 @@ provider:
     DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
     SLACK_WEBHOOK_URL: ${env:SLACK_WEBHOOK_URL}
     SLACK_CHANNEL: ${env:SLACK_CHANNEL}
+    SLACK_VERIFICATION_TOKEN: ${env:SLACK_VERIFICATION_TOKEN}
+    SLACK_TEAM_ID: ${env:SLACK_TEAM_ID}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -24,7 +26,7 @@ provider:
 
 functions:
   create:
-    handler: messages/send.send
+    handler: messages/receive.receive
     events:
       - http:
           path: messages
