@@ -51,19 +51,19 @@ def receive(event, context):
         }
     }
 
-    if not is_request_valid(token, team_id):
+    if not is_request_valid(data['token'], data['team_id']):
         logging.error("Authentication Failed")
         response['statusCode'] = 403
         response['body']['attachments'][0]['text'] = "Authentication Failed"
         return
 
-    if len(text) == 0:
+    if len(data['text']) == 0:
         logging.error("No text in command")
         response['statusCode'] = 401
         response['body']['attachments'][0]['text'] = "No text in command - what would you like me to do?"
         return
 
-    if command != 'cimon':
+    if data['command'] not in ['/cimon']:
         logging.error("Unexpected command")
         raise Exception("Unexpected command.")
         
