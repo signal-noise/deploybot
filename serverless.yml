@@ -22,44 +22,44 @@ provider:
 
 functions:
   create:
-    handler: todos/create.create
+    handler: messages/create.create
     events:
       - http:
-          path: todos
+          path: messages
           method: post
           cors: true
   # list:
-  #   handler: todos/list.list
+  #   handler: messages/list.list
   #   events:
   #     - http:
-  #         path: todos
+  #         path: messages
   #         method: get
   #         cors: true
   # get:
-  #   handler: todos/get.get
+  #   handler: messages/get.get
   #   events:
   #     - http:
-  #         path: todos/{id}
+  #         path: messages/{id}
   #         method: get
   #         cors: true
   # update:
-  #   handler: todos/update.update
+  #   handler: messages/update.update
   #   events:
   #     - http:
-  #         path: todos/{id}
+  #         path: messages/{id}
   #         method: put
   #         cors: true
   # delete:
-  #   handler: todos/delete.delete
+  #   handler: messages/delete.delete
   #   events:
   #     - http:
-  #         path: todos/{id}
+  #         path: messages/{id}
   #         method: delete
   #         cors: true
 
 resources:
   Resources:
-    TodosDynamoDbTable:
+    messagesDynamoDbTable:
       Type: "AWS::DynamoDB::Table"
       DeletionPolicy: Retain
       Properties:
