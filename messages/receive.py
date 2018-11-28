@@ -1,8 +1,6 @@
-import json
+
 import logging
 import os
-import time
-import uuid
 
 import boto3
 
@@ -70,7 +68,9 @@ def receive(event, context):
     response['body']['text'] = help()
     response['attachments'] = []
 
+    logging.info(response)
     return response
 
 def help():
+    logging.info("Sending help text")
     return 'Try `/cimon setup signal-noise/reponame` to get started...'
