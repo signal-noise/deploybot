@@ -53,8 +53,8 @@ def response(status, body):
     response = {
         "statusCode": str(status),
         "headers": { 
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
         },
         "body": body
     }
