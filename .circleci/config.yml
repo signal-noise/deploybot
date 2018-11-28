@@ -1,0 +1,35 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: signalnoise/base:10.13
+    working_directory: ~/project
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: |
+            npm i -g serverless
+      - run:
+          name: Auth keys
+          command: |
+            serverless config credentials \
+            --provider aws \
+            --key $AWS_KEY \
+            --secret $AWS_SECRET
+      - run:
+          name: Deploy
+          command: npm run deploy --verbose
+      - run:
+          command: npm run invoke
+
+      - run:
+          name: Notify
+          command: ./.circleci/notify.sh
+
+workflows:
+  version: 2
+  test_and_build:
+    jobs:
+      - build:
+          context: sn-global

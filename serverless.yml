@@ -1,42 +1,75 @@
-service: tpl # NOTE: Don't put the word "google" in here
+service: deploybot
+
+frameworkVersion: ">=1.1.0 <2.0.0"
 
 provider:
-  name: google
-  runtime: nodejs
-  project: sn-internal-tooling
-  # the path to the credentials file needs to be absolute
-  credentials: ~/.gcloud/sn-internal-tooling-owner.json
-
-plugins:
-  - serverless-google-cloudfunctions
-
-# needs more granular excluding in production as only the serverless provider npm
-# package should be excluded (and not the whole node_modules directory)
-package:
-  exclude:
-    - node_modules/**
-    - .gitignore
-    - .git/**
+  name: aws
+  stage: dev
+  region: eu-west-2
+  runtime: python2.7
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
 
 functions:
-  first:
-    handler: http
+  create:
+    handler: todos/create.create
     events:
-      - http: path
-  # NOTE: the following uses an "event" event (pubSub event in this case).
-  # Please create the corresponding resources in the Google Cloud
-  # before deploying this service through Serverless
-  #second:
-  #  handler: event
-  #  events:
-  #    - event:
-  #        eventType: providers/cloud.pubsub/eventTypes/topic.publish
-  #        resource: projects/*/topics/my-topic
-# you can define resources, templates etc. the same way you would in a
-# Google Cloud deployment configuration
-#resources:
-#  resources:
-#    - type: storage.v1.bucket
-#      name: my-serverless-service-bucket
-#  imports:
-#    - path: my_template.jinja
+      - http:
+          path: todos
+          method: post
+          cors: true
+  # list:
+  #   handler: todos/list.list
+  #   events:
+  #     - http:
+  #         path: todos
+  #         method: get
+  #         cors: true
+  # get:
+  #   handler: todos/get.get
+  #   events:
+  #     - http:
+  #         path: todos/{id}
+  #         method: get
+  #         cors: true
+  # update:
+  #   handler: todos/update.update
+  #   events:
+  #     - http:
+  #         path: todos/{id}
+  #         method: put
+  #         cors: true
+  # delete:
+  #   handler: todos/delete.delete
+  #   events:
+  #     - http:
+  #         path: todos/{id}
+  #         method: delete
+  #         cors: true
+
+resources:
+  Resources:
+    TodosDynamoDbTable:
+      Type: "AWS::DynamoDB::Table"
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
