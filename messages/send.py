@@ -24,6 +24,7 @@ def send(event, context):
         raise Exception("Couldn't send the message.")
         return
 
+    headers = {'Content-Type': 'application/json'}
     uri = os.environ['SLACK_WEBHOOK_URL']
     channel = os.environ['SLACK_CHANNEL']
     payload = {
@@ -31,7 +32,7 @@ def send(event, context):
         "channel": channel,
     }
 
-    r = requests.post(uri, data=payload)
+    r = requests.post(uri, data=json.dumps(payload), headers=headers)
 
     # create a response
     response = {
