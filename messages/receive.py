@@ -65,7 +65,7 @@ def receive(event, context):
         raise Exception("Unexpected command.")
         
     response['body']['text'] = call_function(data['text'])
-    response['attachments'] = []
+    response['body']['attachments'] = []
 
     logging.info(response)
     return response
