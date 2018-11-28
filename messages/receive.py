@@ -32,42 +32,37 @@ def receive(event, context):
     data = {}
     for key, value in d.iteritems():
         data[key] = get_form_variable_value(value)
-
     logging.info(data)
-
-    response = {
-        "statusCode": '200',
-        "body": {
-            "response_type": "ephemeral",
-            "text": "Something went wrong",
-            "attachments": [
-                {
-                    "text":"Partly cloudy today and tomorrow"
-                }
-            ]
-        }
-    }
 
     if not is_request_valid(data['token'], data['team_id']):
         logging.error("Authentication Failed")
-        response['statusCode'] = '403'
-        response['body']['attachments'][0]['text'] = "Authentication Failed"
-        return
+        return slack_response(403, "Authentication Failed")
+
+    if data['command'] not in ['/cimon']:
+        logging.error("Unexpected command")
+        return slack_response(500, "Unexected command")
 
     if len(data['text']) == 0:
         logging.error("No text in command")
         data['text'] = 'help'
-        return
-
-    if data['command'] not in ['/cimon']:
-        logging.error("Unexpected command")
-        raise Exception("Unexpected command.")
         
-    response['body']['text'] = call_function(data['text'])
-    response['body']['attachments'] = []
+    return slack_response(200, call_function(data['text']))
 
+
+def response(status, body):
+    response = {
+        "statusCode": str(status),
+        "body": body
+    }
     logging.info(response)
     return response
+
+
+def slack_response(status, message):
+    return response(status, {
+        "response_type": "ephemeral",
+        "text": message
+    })
 
 
 def call_function(command_text):
