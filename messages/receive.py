@@ -52,6 +52,10 @@ def receive(event, context):
 def response(status, body):
     response = {
         "statusCode": str(status),
+        "headers": { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+        }
         "body": body
     }
     logging.info(response)
