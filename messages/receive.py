@@ -37,23 +37,23 @@ def receive(event, context):
 
     if not is_request_valid(data['token'], data['team_id']):
         logging.error("Authentication Failed")
-        return slack_response(403, "Authentication Failed")
+        return slack_response("Authentication Failed", 403)
 
     if data['command'] not in ['/cimon']:
         logging.error("Unexpected command")
-        return slack_response(500, "Unexected command")
+        return slack_response("Unexpected command", 500)
 
     if len(data['text']) == 0:
         logging.error("No text in command")
         data['text'] = 'help'
         
-    return slack_response(200, call_function(data['text']))
+    return slack_response(call_function(data['text']))
 
 
-def response(status, body):
+def response(body, status=200):
     response = {
         "statusCode": int(status),
-        "isBase64Encoded": false,
+        "isBase64Encoded": False,
         "headers": { 
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
@@ -64,11 +64,11 @@ def response(status, body):
     return response
 
 
-def slack_response(status, message):
-    return response(status, {
+def slack_response(message, status=200):
+    return response({
         "response_type": "ephemeral",
         "text": message
-    })
+   , status)
 
 
 def call_function(command_text):
