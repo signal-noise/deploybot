@@ -25,7 +25,9 @@ def is_request_valid(token, team_id):
 
 
 def receive(event, context):
-    data = json.loads(event)['body']
+    logging.info(event)
+    logging.info(json.loads(event))
+    data = json.loads(event['body'])
 
     response = {
         "statusCode": 200,
