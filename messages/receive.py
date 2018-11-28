@@ -18,6 +18,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 def is_request_valid(token, team_id):
+    logging.info('validating %s against %s and %s against %s' % (token, os.environ['SLACK_VERIFICATION_TOKEN'], team_id, os.environ['SLACK_TEAM_ID']))
     is_token_valid = token == os.environ['SLACK_VERIFICATION_TOKEN']
     is_team_id_valid = team_id == os.environ['SLACK_TEAM_ID']
 
@@ -25,10 +26,7 @@ def is_request_valid(token, team_id):
 
 
 def receive(event, context):
-    logging.info(event)
-    logging.info(event['body'])
     data = parse_qs(event['body'])
-    logging.info(data)
 
     response = {
         "statusCode": 200,
@@ -43,7 +41,7 @@ def receive(event, context):
         }
     }
 
-    if not is_request_valid(data['token'], data['team_id']):
+    if not is_request_valid(data[u'token'], data[u'team_id']):
         logging.error("Authentication Failed")
         response['statusCode'] = 403
         response['body']['attachments'][0]['text'] = "Authentication Failed"
