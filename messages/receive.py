@@ -1,6 +1,7 @@
 import logging
 import os
 import json
+import sys
 
 import boto3
 
@@ -43,11 +44,18 @@ def receive(event, context):
         logging.error("Unexpected command")
         return slack_response("Unexpected command", 500)
 
-    if len(data['text']) == 0:
+    if 'text' not in data or data['text'] == "":
         logging.error("No text in command")
         data['text'] = 'help'
         
     return slack_response(call_function(data['text']))
+
+
+def slack_response(message, status=200):
+    return response({
+        "response_type": "ephemeral",
+        "text": message
+    }, status)
 
 
 def response(body, status=200):
@@ -64,20 +72,15 @@ def response(body, status=200):
     return response
 
 
-def slack_response(message, status=200):
-    return response({
-        "response_type": "ephemeral",
-        "text": message
-    }, status)
-
-
 def call_function(command_text):
     parts = command_text.split()
     f = parts[0]
     p = parts[1::]
     try:
-        return locals()[f](*p)
-    except:
+        logging.info('calling func "%s" with [%s]' % (f, ', '.join(map(str, p))))
+        return getattr(sys.modules[__name__], f)(*p)
+    except Exception as e:
+        logging.error(e)
         return "I didn't understand that, try `/cimon help`"
 
 
