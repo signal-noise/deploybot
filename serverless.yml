@@ -24,7 +24,7 @@ provider:
 
 functions:
   create:
-    handler: messages/create.create
+    handler: messages/send.send
     events:
       - http:
           path: messages
