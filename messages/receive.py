@@ -55,7 +55,7 @@ def response(status, body):
         "headers": { 
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
-        }
+        },
         "body": body
     }
     logging.info(response)
