@@ -9,19 +9,19 @@ jobs:
       - run:
           name: Install Dependencies
           command: |
-            npm i -g serverless
+            npm i serverless
       - run:
           name: Auth keys
           command: |
-            serverless config credentials \
+            ./node_modules/.bin/serverless config credentials \
             --provider aws \
             --key $AWS_KEY \
             --secret $AWS_SECRET
       - run:
           name: Deploy
-          command: npm run deploy --verbose
-      - run:
-          command: npm run invoke
+          command: ./node_modules/.bin/serverless deploy --verbose
+      # - run:
+      #     command: npm run invoke
 
       - run:
           name: Notify
