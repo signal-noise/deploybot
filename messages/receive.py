@@ -16,12 +16,13 @@ if logger.handlers:
         logger.removeHandler(handler)
 logging.basicConfig(level=logging.INFO)
 
+
 def get_form_variable_value(form_var):
     return form_var[0]
 
 
 def is_request_valid(token, team_id):
-    logging.info('validating %s against %s and %s against %s' % (token, os.environ['SLACK_VERIFICATION_TOKEN'], team_id, os.environ['SLACK_TEAM_ID']))
+    # logging.info('validating %s against %s and %s against %s' % (token, os.environ['SLACK_VERIFICATION_TOKEN'], team_id, os.environ['SLACK_TEAM_ID']))
     is_token_valid = token == os.environ['SLACK_VERIFICATION_TOKEN']
     is_team_id_valid = team_id == os.environ['SLACK_TEAM_ID']
 
@@ -29,11 +30,13 @@ def is_request_valid(token, team_id):
 
 
 def receive(event, context):
-    data = parse_qs(event['body'])
-    token = get_form_variable_value(data['token'])
-    team_id = get_form_variable_value(data['team_id'])
-    command = get_form_variable_value(data['command'])
-    text = get_form_variable_value(data['text'])
+    d = parse_qs(event['body'])
+
+    data = {}
+    for key, value in d.iteritems():
+        data[key] = get_form_variable_value(value)
+
+    logging.info(data)
 
     response = {
         "statusCode": 200,
