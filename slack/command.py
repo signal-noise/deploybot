@@ -10,8 +10,13 @@ import boto3
 
 from urlparse import parse_qs
 
-NO_FUNC_FOUND="I didn't understand that, try `/cimon help`"
-HELP_CONTENT="Try `/cimon setup signal-noise/reponame` to get started..."
+COMMAND='/cimon'
+
+ERR_NO_FUNC_FOUND="I didn't understand that, try `%s help`" % COMMAND
+HELP_CONTENT="Try `%s setup signal-noise/reponame` to get started..." % COMMAND
+ERR_SETUP_PARAM_MISSING="You need to tell me which repo. Try `%s setup username/reponame`" % COMMAND
+ERR_SETUP_PARAM_FORMAT=("The repo name should be two parts; the GitHub username and the actual"
+    " repository name. e.g. the React library's repo would be `facebook/react`")
 
 SLACK_SIGNING_SECRET_VERSION="v0"
 
@@ -29,17 +34,25 @@ logging.basicConfig(level=logging.INFO)
 #
 #
 
-def help():
+def help(*args, **kwargs):
     """
     Prints out usage information
     """
     return HELP_CONTENT
 
 
-def setup(repo):
+def setup(repo=None):
     """
     Initialise project
     """
+    if repo is None or repo.strip() == "":
+        return ERR_SETUP_PARAM_MISSING
+
+    try:
+        (username, repository) = repo.split('/')
+    except ValueError as e:
+        return ERR_SETUP_PARAM_FORMAT
+
     return "Setting up %s" % repo
 
 
@@ -63,12 +76,12 @@ def receive(event, context):
     for key, value in d.iteritems():
         data[key] = get_form_variable_value(value)
 
-    if data['command'] not in ['/cimon']:
+    if data['command'] not in ['%s' % COMMAND]:
         logging.error("Unexpected command")
         return response({"message": "Unexpected command"}, 500)
 
     if 'text' not in data or data['text'] == "":
-        logging.error("No text in command")
+        logging.warn("No text in command")
         data['text'] = 'help'
         
     return slack_response(call_function(data['text']))
@@ -81,14 +94,14 @@ def get_form_variable_value(form_var):
     return form_var[0]
 
 
-def slack_response(message, status=200):
+def slack_response(message):
     """
     Builds a data structure for sending a Slack message reply
     """
     return response({
         "response_type": "ephemeral",
         "text": message
-    }, status)
+    }, 200)
 
 
 def response(body, status=200):
@@ -116,13 +129,13 @@ def call_function(command_text):
     """
     parts = command_text.split()
     f = parts[0]
-    p = parts[1::]
+    p = " ".join(parts[1::])
     try:
         # logging.info('calling func "%s" with [%s]' % (f, ', '.join(map(str, p))))
-        return getattr(sys.modules[__name__], f)(*p)
+        return getattr(sys.modules[__name__], f)(p)
     except Exception as e:
         logging.error(e)
-        return NO_FUNC_FOUND
+        return ERR_NO_FUNC_FOUND
 
 
 def is_request_valid(event):
