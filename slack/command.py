@@ -5,6 +5,7 @@ import hashlib
 import json
 import sys
 from datetime import datetime, timedelta
+# import uuid
 
 import boto3
 
@@ -41,17 +42,51 @@ def help(*args, **kwargs):
     return HELP_CONTENT
 
 
-def setup(repo=None):
+def setup(repo=None, context=None):
     """
     Initialise project
     """
     if repo is None or repo.strip() == "":
         return ERR_SETUP_PARAM_MISSING
 
+    # check repo is one word only with a slash in it - does the below properly do that?
+
     try:
         (username, repository) = repo.split('/')
     except ValueError as e:
         return ERR_SETUP_PARAM_FORMAT
+
+    timestamp = int(time.time() * 1000)
+
+    table = dynamodb.Table(os.environ['DYNAMODB_TABLE_PROJECT'])
+
+    item = {
+        # 'id': str(uuid.uuid1()),
+        'repository': repo,
+        'slack_channel': context['channel_name'],
+        'slack_channelid': context['channel_id'],
+        'createdAt': timestamp,
+        'updatedAt': timestamp,
+    }
+
+    # if repo exists in the DB
+        # error = already running in another channel
+
+    # if channel exists in the DB
+        # error = channel already running another repo
+    
+    # if both
+        # warn = already set up
+
+    # else
+        # write the message to the database
+        #table.put_item(Item=item)
+
+    # create a response
+    response = {
+        "statusCode": 200,
+        "body": json.dumps(item)
+    }
 
     return "Setting up %s" % repo
 
@@ -83,25 +118,17 @@ def receive(event, context):
     if 'text' not in data or data['text'] == "":
         logging.warn("No text in command")
         data['text'] = 'help'
+
+    context = {
+        channel_id = data['channel_id'],
+        channel_name = data['channel_name'],
+        user_id = data['user_id'],
+        user_name = data['user_name'],
+        response_url = data['response_url'],
+        trigger_id = data['trigger_id'],
+    }
         
-    return slack_response(call_function(data['text']))
-
-
-def get_form_variable_value(form_var):
-    """
-    Cleans up submitted form vars on the assumption they are single values
-    """
-    return form_var[0]
-
-
-def slack_response(message):
-    """
-    Builds a data structure for sending a Slack message reply
-    """
-    return response({
-        "response_type": "ephemeral",
-        "text": message
-    }, 200)
+    return slack_response(call_function(data['text'], context))
 
 
 def response(body, status=200):
@@ -121,21 +148,14 @@ def response(body, status=200):
     return response
 
 
-def call_function(command_text):
+def slack_response(message):
     """
-    Takes the `text` of the command and calls a function 
-    using the first word as name and the others as parameters, 
-    e.g. 'setup myrepo' => setup(myrepo)
+    Builds a data structure for sending a Slack message reply
     """
-    parts = command_text.split()
-    f = parts[0]
-    p = " ".join(parts[1::])
-    try:
-        # logging.info('calling func "%s" with [%s]' % (f, ', '.join(map(str, p))))
-        return getattr(sys.modules[__name__], f)(p)
-    except Exception as e:
-        logging.error(e)
-        return ERR_NO_FUNC_FOUND
+    return response({
+        "response_type": "ephemeral",
+        "text": message
+    }, 200)
 
 
 def is_request_valid(event):
@@ -162,4 +182,28 @@ def is_request_valid(event):
     signature = '%s=%s' % (SLACK_SIGNING_SECRET_VERSION, signature)
     
     return hmac.compare_digest(str(signature), str(slack_signature))
+
+
+def call_function(command_text, context):
+    """
+    Takes the `text` of the command and calls a function 
+    using the first word as name and the others as parameters, 
+    e.g. 'setup myrepo' => setup(myrepo)
+    """
+    parts = command_text.split()
+    f = parts[0]
+    p = " ".join(parts[1::])
+    try:
+        # logging.info('calling func "%s" with [%s]' % (f, ', '.join(map(str, p))))
+        return getattr(sys.modules[__name__], f)(p, context=context)
+    except Exception as e:
+        logging.error(e)
+        return ERR_NO_FUNC_FOUND
+
+
+def get_form_variable_value(form_var):
+    """
+    Cleans up submitted form vars on the assumption they are single values
+    """
+    return form_var[0]
 
