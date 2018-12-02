@@ -4,8 +4,9 @@ import hmac
 import hashlib
 import json
 import sys
+import time
+import traceback
 from datetime import datetime, timedelta
-# import uuid
 
 import boto3
 
@@ -13,11 +14,23 @@ from urlparse import parse_qs
 
 COMMAND='/cimon'
 
-ERR_NO_FUNC_FOUND="I didn't understand that, try `%s help`" % COMMAND
-HELP_CONTENT="Try `%s setup signal-noise/reponame` to get started..." % COMMAND
+FN_RESPONSE_HELP=("There are a few things you can ask me to do. "
+    "Try `%s setup signal-noise/reponame` to get started, " 
+    "or `%s status` to see what's going on in this channel. "
+    "There's also `%s reset` if you want to start over on this channel" % (COMMAND, COMMAND, COMMAND))
+FN_RESPONSE_STATUS_EXISTS="This channel is currently set up for `%s`"
+FN_RESPONSE_STATUS_NOTEXISTS="This channel hasn't got any configuration at the moment."
+FN_RESPONSE_SETUP="Setting up `%s` in this channel. Note that you won't be able to use this channel for another project, or use that repo in another channel."
+FN_RESPONSE_DELETE_SUCCESS="Removed this channel's configuration for `%s`"
+FN_RESPONSE_DELETE_FAILURE="No config found for this channel"
+
+ERR_NO_FUNC_FOUND="I didn't understand that, try `%s help`. This may also be an error with my code." % COMMAND
 ERR_SETUP_PARAM_MISSING="You need to tell me which repo. Try `%s setup username/reponame`" % COMMAND
 ERR_SETUP_PARAM_FORMAT=("The repo name should be two parts; the GitHub username and the actual"
     " repository name. e.g. the React library's repo would be `facebook/react`")
+ERR_SETUP_CHANNEL_REPO_EXISTS="It looks as though that repo is already setup in this channel"
+ERR_SETUP_REPO_EXISTS="That repo is already setup in a different channel. Only one channel per repo."
+ERR_SETUP_CHANNEL_EXISTS="This channel is already setup for a different repo. Only one repo per channel."
 
 SLACK_SIGNING_SECRET_VERSION="v0"
 
@@ -39,13 +52,26 @@ def help(*args, **kwargs):
     """
     Prints out usage information
     """
-    return HELP_CONTENT
+    return FN_RESPONSE_HELP
+
+
+def status(text, context):
+    """
+    Prints out current setup information
+    """
+    table = dynamodb.Table(os.environ['DYNAMODB_TABLE_PROJECT'])
+    entries = table.scan()
+    for entry in entries['Items']:
+        if entry['slack_channelid'] == context['channel_id']:
+            return FN_RESPONSE_STATUS_EXISTS % entry['repository']
+    return FN_RESPONSE_STATUS_NOTEXISTS
 
 
 def setup(repo=None, context=None):
     """
     Initialise project
     """
+    logging.info("context = {%s}" % ', '.join("%s: %r" % (key,val) for (key,val) in context.iteritems()))
     if repo is None or repo.strip() == "":
         return ERR_SETUP_PARAM_MISSING
 
@@ -56,39 +82,52 @@ def setup(repo=None, context=None):
     except ValueError as e:
         return ERR_SETUP_PARAM_FORMAT
 
-    timestamp = int(time.time() * 1000)
-
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE_PROJECT'])
 
+    timestamp = int(time.mktime(datetime.now().timetuple()))
     item = {
-        # 'id': str(uuid.uuid1()),
         'repository': repo,
         'slack_channel': context['channel_name'],
         'slack_channelid': context['channel_id'],
         'createdAt': timestamp,
         'updatedAt': timestamp,
     }
+    logging.info("item = {%s}" % ', '.join("%s: %r" % (key,val) for (key,val) in item.iteritems()))
+        
+    entries = table.scan()
 
-    # if repo exists in the DB
-        # error = already running in another channel
+    for entry in entries['Items']:
+        if (entry['repository'] == item['repository'] 
+                and entry['slack_channelid'] == item['slack_channelid']):
+            return ERR_SETUP_CHANNEL_REPO_EXISTS
 
-    # if channel exists in the DB
-        # error = channel already running another repo
-    
-    # if both
-        # warn = already set up
+        if entry['repository'] == item['repository']:
+            return ERR_SETUP_REPO_EXISTS
 
-    # else
-        # write the message to the database
-        #table.put_item(Item=item)
+        if entry['slack_channelid'] == item['slack_channelid']:
+            return ERR_SETUP_CHANNEL_EXISTS
 
-    # create a response
-    response = {
-        "statusCode": 200,
-        "body": json.dumps(item)
-    }
+    table.put_item(Item=item)
 
-    return "Setting up %s" % repo
+    return FN_RESPONSE_SETUP % repo
+
+
+def reset(text, context):
+    """
+    Removes any existing configuration for this channel
+    """
+    table = dynamodb.Table(os.environ['DYNAMODB_TABLE_PROJECT'])
+    entries = table.scan()
+    for entry in entries['Items']:
+        if entry['slack_channelid'] == context['channel_id']:
+            table.delete_item(
+                Key={
+                    'repository': entry['repository'],
+                    'slack_channelid': entry['slack_channelid']
+                }
+            )
+            return FN_RESPONSE_DELETE_SUCCESS % entry['repository']
+    return FN_RESPONSE_DELETE_FAILURE
 
 
 #
@@ -109,6 +148,7 @@ def receive(event, context):
 
     data = {}
     for key, value in d.iteritems():
+        # logging.info('got data "%s"="%s"'%(key, value))
         data[key] = get_form_variable_value(value)
 
     if data['command'] not in ['%s' % COMMAND]:
@@ -120,12 +160,12 @@ def receive(event, context):
         data['text'] = 'help'
 
     context = {
-        channel_id = data['channel_id'],
-        channel_name = data['channel_name'],
-        user_id = data['user_id'],
-        user_name = data['user_name'],
-        response_url = data['response_url'],
-        trigger_id = data['trigger_id'],
+        "channel_id": data['channel_id'],
+        "channel_name": data['channel_name'],
+        "user_id": data['user_id'],
+        "user_name": data['user_name'],
+        "response_url": data['response_url'],
+        "trigger_id": data['trigger_id'],
     }
         
     return slack_response(call_function(data['text'], context))
