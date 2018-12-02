@@ -5,12 +5,11 @@ import hashlib
 import json
 import sys
 import time
-import traceback
+# import traceback
 from datetime import datetime, timedelta
+from urlparse import parse_qs
 
 import boto3
-
-from urlparse import parse_qs
 
 COMMAND='/cimon'
 
@@ -35,6 +34,7 @@ ERR_SETUP_CHANNEL_EXISTS="This channel is already setup for a different repo. On
 SLACK_SIGNING_SECRET_VERSION="v0"
 
 dynamodb = boto3.resource('dynamodb')
+lambda_client = boto3.client('lambda', region_name="eu-west-2",)
 
 logger = logging.getLogger()
 if logger.handlers:
@@ -108,6 +108,19 @@ def setup(repo=None, context=None):
             return ERR_SETUP_CHANNEL_EXISTS
 
     table.put_item(Item=item)
+
+
+    response = lambda_client.invoke(
+        FunctionName="deploybot-dev-github_collaborators",
+        InvocationType='RequestResponse',
+        Payload=json.dumps({'repository': item['repository']})
+    )
+
+    string_response = response["Payload"].read().decode('utf-8')
+
+    parsed_response = json.loads(string_response)
+
+    print("Lambda invocation message:", parsed_response)
 
     return FN_RESPONSE_SETUP % repo
 
