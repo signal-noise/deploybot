@@ -15,6 +15,7 @@ provider:
     SLACK_CHANNEL: ${env:SLACK_CHANNEL}
     SLACK_SIGNING_SECRET: ${env:SLACK_SIGNING_SECRET}
     SLACK_TEAM_ID: ${env:SLACK_TEAM_ID}
+    GITHUB_AUTH_TOKEN: ${env:GITHUB_AUTH_TOKEN}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -30,18 +31,32 @@ provider:
         - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_BUILD}"
 
 functions:
-  command:
+  slack_command:
     handler: slack/command.receive
     events:
       - http:
           path: slack/command
           method: post
           cors: true
-  message:
+  slack_message:
     handler: slack/message.send
     events:
       - http:
           path: slack/message
+          method: post
+          cors: true
+  github_event:
+    handler: github/webhook.receive
+    events:
+      - http:
+          path: github/webhook
+          method: post
+          cors: true
+  github_setup:
+    handler: github/setup.send
+    events:
+      - http:
+          path: github/setup
           method: post
           cors: true
 

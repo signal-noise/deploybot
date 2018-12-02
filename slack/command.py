@@ -5,12 +5,11 @@ import hashlib
 import json
 import sys
 import time
-import traceback
+# import traceback
 from datetime import datetime, timedelta
+from urlparse import parse_qs
 
 import boto3
-
-from urlparse import parse_qs
 
 COMMAND='/cimon'
 
