@@ -42,6 +42,13 @@ functions:
           path: slack/command
           method: post
           cors: true
+  slack_interactive:
+    handler: slack/interactive.receive
+    events:
+      - http:
+          path: slack/interactive
+          method: post
+          cors: true
   slack_message:
     handler: slack/message.send
     # events:
