@@ -44,7 +44,6 @@ def send(event, context):
     data = r.json()
     logging.info(data)
 
-    # create a response
     response = {
         "statusCode": r.status_code,
         "body": data['data']['repository']
