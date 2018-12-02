@@ -8,10 +8,12 @@ provider:
   region: eu-west-2
   runtime: python2.7
   environment:
-    DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+    DYNAMODB_TABLE_PROJECT: ${self:service}-project-${opt:stage, self:provider.stage}
+    DYNAMODB_TABLE_USER: ${self:service}-user-${opt:stage, self:provider.stage}
+    DYNAMODB_TABLE_BUILD: ${self:service}-build-${opt:stage, self:provider.stage}
     SLACK_WEBHOOK_URL: ${env:SLACK_WEBHOOK_URL}
     SLACK_CHANNEL: ${env:SLACK_CHANNEL}
-    SLACK_VERIFICATION_TOKEN: ${env:SLACK_VERIFICATION_TOKEN}
+    SLACK_SIGNING_SECRET: ${env:SLACK_SIGNING_SECRET}
     SLACK_TEAM_ID: ${env:SLACK_TEAM_ID}
   iamRoleStatements:
     - Effect: Allow
@@ -22,48 +24,66 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
-      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+      Resource:
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_PROJECT}"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_USER}"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_BUILD}"
 
 functions:
-  create:
-    handler: messages/receive.receive
+  command:
+    handler: slack/command.receive
     events:
       - http:
-          path: messages
+          path: slack/command
           method: post
           cors: true
-  # list:
-  #   handler: messages/list.list
-  #   events:
-  #     - http:
-  #         path: messages
-  #         method: get
-  #         cors: true
-  # get:
-  #   handler: messages/get.get
-  #   events:
-  #     - http:
-  #         path: messages/{id}
-  #         method: get
-  #         cors: true
-  # update:
-  #   handler: messages/update.update
-  #   events:
-  #     - http:
-  #         path: messages/{id}
-  #         method: put
-  #         cors: true
-  # delete:
-  #   handler: messages/delete.delete
-  #   events:
-  #     - http:
-  #         path: messages/{id}
-  #         method: delete
-  #         cors: true
+  message:
+    handler: slack/message.send
+    events:
+      - http:
+          path: slack/message
+          method: post
+          cors: true
 
 resources:
   Resources:
-    messagesDynamoDbTable:
+    projectDynamoDbTable:
+      Type: "AWS::DynamoDB::Table"
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: repository
+            AttributeType: S
+          - AttributeName: slack_channelid
+            AttributeType: S
+        KeySchema:
+          - AttributeName: repository
+            KeyType: HASH
+          - AttributeName: slack_channelid
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_TABLE_PROJECT}
+    userDynamoDbTable:
+      Type: "AWS::DynamoDB::Table"
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: github_username
+            AttributeType: S
+          - AttributeName: slack_userid
+            AttributeType: S
+        KeySchema:
+          - AttributeName: github_username
+            KeyType: HASH
+          - AttributeName: slack_userid
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_TABLE_USER}
+    buildDynamoDbTable:
       Type: "AWS::DynamoDB::Table"
       DeletionPolicy: Retain
       Properties:
@@ -76,4 +96,4 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        TableName: ${self:provider.environment.DYNAMODB_TABLE_BUILD}
