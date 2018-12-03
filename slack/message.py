@@ -16,7 +16,12 @@ logging.basicConfig(level=logging.INFO)
 
 
 def send(event, context):
-    data = json.loads(event['body'])
+    http_request = False
+    data = event
+    if 'body' in data:
+        http_request = True
+        data = json.loads(event['body'])
+
     if 'text' not in data:
         logging.error("Validation Failed")
         raise Exception("Couldn't send the message.")
@@ -32,11 +37,13 @@ def send(event, context):
 
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
 
-    # create a response
-    response = {
-        "statusCode": r.status_code,
-        "body": r.text
-    }
+    if http_request:
+        response = {
+            "statusCode": r.status_code,
+            "body": r.text
+        }
+    else:
+        response = r.text
 
     return response
 
