@@ -20,13 +20,19 @@ logging.basicConfig(level=logging.INFO)
 
 
 def send(event, context):
-    if 'repository' not in event:
+    http_request = False
+    data = event
+    if 'body' in data:
+        http_request = True
+        data = json.loads(event['body'])
+
+    if 'repository' not in data:
         logging.error("Validation Failed")
         raise Exception("Couldn't set up the repository.")
         return
 
     try:
-        (username, repository) = event['repository'].split('/')
+        (username, repository) = data['repository'].split('/')
     except ValueError as e:
         logging.error("Validation Failed")
         raise Exception("Couldn't set up the repository.")
@@ -41,13 +47,23 @@ def send(event, context):
     }
 
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
-    data = r.json()
-    logging.info(data)
-
-    response = {
-        "statusCode": r.status_code,
-        "body": data['data']['repository']
+    json_data = r.json()
+    logging.info(json_data)
+    response_data = {
+        "count": json_data['data']['repository']['collaborators']['totalCount'],
+        "collaborators": list(map(
+            lambda x: x['login'], 
+            json_data['data']['repository']['collaborators']['nodes']
+        ))
     }
+
+    if http_request:
+        response = {
+            "statusCode": r.status_code,
+            "body": response_data
+        }
+    else:
+        response = response_data
 
     return response
 

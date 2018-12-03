@@ -109,7 +109,6 @@ def setup(repo=None, context=None):
 
     table.put_item(Item=item)
 
-
     response = lambda_client.invoke(
         FunctionName="deploybot-dev-github_collaborators",
         InvocationType='RequestResponse',
@@ -117,7 +116,6 @@ def setup(repo=None, context=None):
     )
 
     string_response = response["Payload"].read().decode('utf-8')
-
     parsed_response = json.loads(string_response)
 
     print("Lambda invocation message:", parsed_response)
