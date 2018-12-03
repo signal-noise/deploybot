@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from botocore.vendored import requests
 from urlparse import parse_qs
 
-FN_RESPONSE_USER_CREATED="Thanks! Now I can @ you properly. If there were any other buttons available you should encourage the other channel members to `meet` me as well."
+FN_RESPONSE_USER_CREATED="Thanks, now I can @ you properly. If there were any other buttons available you should encourage the other channel members to say `hello` to me as well."
 
 ERR_GITHUB_USER_EXISTS="Hm. I have that GitHub username registered to someone else. No action taken, but you can say `goodbye` if you like."
 ERR_SLACK_USER_EXISTS="I have you registered against another GitHub username. No action taken, you can say `goodbye` if you like."
