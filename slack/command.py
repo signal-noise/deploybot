@@ -16,12 +16,16 @@ COMMAND='/cimon'
 FN_RESPONSE_HELP=("There are a few things you can ask me to do. "
     "Try `%s setup signal-noise/reponame` to get started, " 
     "or `%s status` to see what's going on in this channel. "
-    "There's also `%s reset` if you want to start over on this channel" % (COMMAND, COMMAND, COMMAND))
-FN_RESPONSE_STATUS_EXISTS="This channel is currently set up for `%s`"
+    "There's `%s hello` to connect your Github and Slack accounts, and `%s bye` to undo that. "
+    "There's also `%s reset` if you want to start over on this channel's configuration." % (COMMAND, COMMAND, COMMAND, COMMAND, COMMAND))
+FN_RESPONSE_STATUS_EXISTS="This channel is currently set up for `%s`. Some GitHub users aren't yet connected."
 FN_RESPONSE_STATUS_NOTEXISTS="This channel hasn't got any configuration at the moment."
+FN_RESPONSE_STATUS_ALL_GH_KNOWN="I know all the users oon this repository"
 FN_RESPONSE_SETUP="Setting up `%s` in this channel. Note that you won't be able to use this channel for another project, or use that repo in another channel."
-FN_RESPONSE_DELETE_SUCCESS="Removed this channel's configuration for `%s`"
-FN_RESPONSE_DELETE_FAILURE="No config found for this channel"
+FN_RESPONSE_RESET_SUCCESS="Removed this channel's configuration for `%s`"
+FN_REPSONSE_HELLO="Hi! Who are you when you're not here?"
+FN_REPSONSE_HELLO_NO_UNKNOWNS="Hi! Either we already know each other or you don't have access to the repo this channel is set up for."
+FN_RESPONSE_GOODBYE="Who did you say you were again? (Command successful)"
 PROMPT_USER_BUTTONS="Select your GitHub username so we can connect it to your Slack username. If you don't see your name you don't have access to the repository"
 
 ERR_NO_FUNC_FOUND="I didn't understand that, try `%s help`. This may also be an error with my code." % COMMAND
@@ -31,7 +35,9 @@ ERR_SETUP_PARAM_FORMAT=("The repo name should be two parts; the GitHub username 
 ERR_SETUP_CHANNEL_REPO_EXISTS="It looks as though that repo is already setup in this channel"
 ERR_SETUP_REPO_EXISTS="That repo is already setup in a different channel. Only one channel per repo."
 ERR_SETUP_CHANNEL_EXISTS="This channel is already setup for a different repo. Only one repo per channel."
+ERR_RESET_FAILURE="No config found for this channel"
 ERR_USER_BUTTON_FALLBACK="You are unable to introduce yourself for some reason. Sorry."
+ERR_GOODBYE_NO_USER="Nothing to forget; I couldn't find you in the DB."
 
 SLACK_SIGNING_SECRET_VERSION="v0"
 
@@ -66,7 +72,7 @@ def status(text, context):
     for entry in entries['Items']:
         if entry['slack_channelid'] == context['channel_id']:
             return slack_response(FN_RESPONSE_STATUS_EXISTS % entry['repository'])
-    return slack_response(FN_RESPONSE_STATUS_NOTEXISTS)
+    return connect_github_user(FN_RESPONSE_STATUS_NOTEXISTS, entry['repository'], entry['slack_channelid'], FN_RESPONSE_STATUS_ALL_GH_KNOWN)
 
 
 def setup(repo=None, context=None):
@@ -97,7 +103,6 @@ def setup(repo=None, context=None):
     logging.info("item = {%s}" % ', '.join("%s: %r" % (key,val) for (key,val) in item.iteritems()))
         
     entries = table.scan()
-
     for entry in entries['Items']:
         if (entry['repository'] == item['repository'] 
                 and entry['slack_channelid'] == item['slack_channelid']):
@@ -111,20 +116,7 @@ def setup(repo=None, context=None):
 
     table.put_item(Item=item)
 
-    response = lambda_client.invoke(
-        FunctionName="deploybot-dev-github_collaborators",
-        InvocationType='RequestResponse',
-        Payload=json.dumps({'repository': item['repository']})
-    )
-
-    string_response = response["Payload"].read().decode('utf-8')
-    parsed_response = json.loads(string_response)
-
-    return slack_user_buttons(
-        FN_RESPONSE_SETUP % repo, 
-        parsed_response['collaborators'],
-        "%s:::%s" % (item['repository'], item['slack_channelid'])
-    )
+    return connect_github_user(FN_RESPONSE_SETUP % repo, item['repository'], item['slack_channelid'])
 
 
 def reset(text, context):
@@ -141,66 +133,81 @@ def reset(text, context):
                     'slack_channelid': entry['slack_channelid']
                 }
             )
-            return slack_response(FN_RESPONSE_DELETE_SUCCESS % entry['repository'])
-    return slack_response(FN_RESPONSE_DELETE_FAILURE, True)
+            return slack_response(FN_RESPONSE_RESET_SUCCESS % entry['repository'])
+    return slack_response(ERR_RESET_FAILURE, True)
+
+
+def hello(text, context):
+    """
+    Triggers the GitHub user connection message
+    """
+    table = dynamodb.Table(os.environ['DYNAMODB_TABLE_PROJECT'])
+    entries = table.scan()
+    for entry in entries['Items']:
+        if context['channel_id'] == entry['slack_channelid']:
+            return connect_github_user(FN_REPSONSE_HELLO, entry['repository'], entry['slack_channelid'], FN_REPSONSE_HELLO_NO_UNKNOWNS)
+
+
+def goodbye(*args, **kwargs):
+    """
+    Deletes user record of command issuer
+    """
+    return bye(*args, **kwargs)
+
+
+def bye(text, context):
+    """
+    Deletes user record of command issuer
+    """
+    table = dynamodb.Table(os.environ['DYNAMODB_TABLE_USER'])
+    entries = table.scan()
+    for entry in entries['Items']:
+        if entry['slack_userid'] == context['user_id']:
+            table.delete_item(
+                Key={
+                    'github_username': entry['github_username'],
+                    'slack_userid': entry['slack_userid']
+                }
+            )
+            return slack_response(FN_RESPONSE_GOODBYE)
+    return slack_response(ERR_GOODBYE_NO_USER)
 
 
 #
 #
-# Response logic
+# Shared Slack functionality
 #
 #
 
-def receive(event, context):
-    """
-    Handler for slash commands sent from Slack
-    """
-    if not is_request_valid(event):
-        logging.error("Authentication Failed")
-        return response({"message": "Authentication Failed"}, 401)
 
-    d = parse_qs(event['body'])
+def connect_github_user(message, repository, slack_channelid, message_fallback=None):
+    response = lambda_client.invoke(
+        FunctionName="deploybot-dev-github_collaborators",
+        InvocationType='RequestResponse',
+        Payload=json.dumps({'repository': repository})
+    )
 
-    data = {}
-    for key, value in d.iteritems():
-        # logging.info('got data "%s"="%s"'%(key, value))
-        data[key] = get_form_variable_value(value)
+    string_response = response["Payload"].read().decode('utf-8')
+    parsed_response = json.loads(string_response)
 
-    if data['command'] not in ['%s' % COMMAND]:
-        logging.error("Unexpected command")
-        return response({"message": "Unexpected command"}, 500)
+    table = dynamodb.Table(os.environ['DYNAMODB_TABLE_USER'])
+    entries = table.scan()
+    gh_users = [ x['github_username'] for x in entries['Items'] ]
+    unknown_users = []
+    for user in parsed_response['collaborators']:
+        if user not in gh_users:
+            unknown_users.append(user)
 
-    if 'text' not in data or data['text'] == "":
-        logging.warn("No text in command")
-        data['text'] = 'help'
-
-    context = {
-        "channel_id": data['channel_id'],
-        "channel_name": data['channel_name'],
-        "user_id": data['user_id'],
-        "user_name": data['user_name'],
-        "response_url": data['response_url'],
-        "trigger_id": data['trigger_id'],
-    }
-        
-    return call_function(data['text'], context)
-
-
-def response(body, status=200):
-    """
-    Builds the data strcture for an AWS Lambda reply
-    """
-    response = {
-        "statusCode": int(status),
-        "isBase64Encoded": False,
-        "headers": { 
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-        },
-        "body": json.dumps(body)
-    }
-    logging.info(response)
-    return response
+    if len(unknown_users) > 0:
+        return slack_user_buttons(
+            message, 
+            unknown_users,
+            "%s:::%s" % (repository, slack_channelid)
+        )
+    else:
+        if message_fallback is not None:
+            message = message_fallback
+        return slack_response(message)
 
 
 def slack_response(message, is_public=False):
@@ -273,6 +280,64 @@ def is_request_valid(event):
     return hmac.compare_digest(str(signature), str(slack_signature))
 
 
+#
+#
+# Response logic
+#
+#
+
+def receive(event, context):
+    """
+    Handler for slash commands sent from Slack
+    """
+    if not is_request_valid(event):
+        logging.error("Authentication Failed")
+        return response({"message": "Authentication Failed"}, 401)
+
+    d = parse_qs(event['body'])
+
+    data = {}
+    for key, value in d.iteritems():
+        # logging.info('got data "%s"="%s"'%(key, value))
+        data[key] = get_form_variable_value(value)
+
+    if data['command'] not in ['%s' % COMMAND]:
+        logging.error("Unexpected command")
+        return response({"message": "Unexpected command"}, 500)
+
+    if 'text' not in data or data['text'] == "":
+        logging.warn("No text in command")
+        data['text'] = 'help'
+
+    context = {
+        "channel_id": data['channel_id'],
+        "channel_name": data['channel_name'],
+        "user_id": data['user_id'],
+        "user_name": data['user_name'],
+        "response_url": data['response_url'],
+        "trigger_id": data['trigger_id'],
+    }
+        
+    return call_function(data['text'], context)
+
+
+def response(body, status=200):
+    """
+    Builds the data strcture for an AWS Lambda reply
+    """
+    response = {
+        "statusCode": int(status),
+        "isBase64Encoded": False,
+        "headers": { 
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+        },
+        "body": json.dumps(body)
+    }
+    logging.info(response)
+    return response
+
+
 def call_function(command_text, context):
     """
     Takes the `text` of the command and calls a function 
@@ -295,4 +360,3 @@ def get_form_variable_value(form_var):
     Cleans up submitted form vars on the assumption they are single values
     """
     return form_var[0]
-

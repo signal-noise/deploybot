@@ -1,11 +1,22 @@
 import json
 import logging
 import os
+import hmac
+import hashlib
+import sys
 
 import boto3
-
+import time
+from datetime import datetime, timedelta
 from botocore.vendored import requests
 from urlparse import parse_qs
+
+FN_RESPONSE_USER_CREATED="Thanks! Now I can @ you properly. If there were any other buttons available you should encourage the other channel members to `meet` me as well."
+
+ERR_GITHUB_USER_EXISTS="Hm. I have that GitHub username registered to someone else. No action taken, but you can say `goodbye` if you like."
+ERR_SLACK_USER_EXISTS="I have you registered against another GitHub username. No action taken, you can say `goodbye` if you like."
+
+SLACK_SIGNING_SECRET_VERSION="v0"
 
 dynamodb = boto3.resource('dynamodb')
 
@@ -14,6 +25,40 @@ if logger.handlers:
     for handler in logger.handlers:
         logger.removeHandler(handler)
 logging.basicConfig(level=logging.INFO)
+
+
+def github_username(gh_user, data=None):
+    slack_userid = data['user']['id']
+    slack_username = data['user']['name']
+
+    user_table = dynamodb.Table(os.environ['DYNAMODB_TABLE_USER'])
+
+    timestamp = int(time.mktime(datetime.now().timetuple()))
+    item = {
+        'github_username': gh_user,
+        'slack_userid': slack_userid,
+        'slack_username': slack_username,
+        'createdAt': timestamp,
+        'updatedAt': timestamp,
+    }
+    logging.info("item = {%s}" % ', '.join("%s: %r" % (key,val) for (key,val) in item.iteritems()))
+        
+    entries = user_table.scan()
+
+    for entry in entries['Items']:
+        if (entry['github_username'] == item['github_username'] 
+                and entry['slack_userid'] == item['slack_userid']):
+            return slack_response(FN_RESPONSE_USER_CREATED)
+
+        if entry['github_username'] == item['github_username']:
+            return slack_response(ERR_GITHUB_USER_EXISTS)
+
+        if entry['slack_userid'] == item['slack_userid']:
+            return slack_response(ERR_SLACK_USER_EXISTS)
+
+    user_table.put_item(Item=item)
+
+    return slack_response(FN_RESPONSE_USER_CREATED)
 
 
 #
@@ -32,26 +77,16 @@ def receive(event, context):
 
     d = parse_qs(event['body'])
 
-    data = {}
-    for key, value in d.iteritems():
-        logging.info('got data "%s"="%s"'%(key, value))
-        data[key] = get_form_variable_value(value)
+    data = json.loads(d['payload'][0])
+    logging.info(data)
 
     if 'actions' not in data:
         logging.error("Unexpected event")
         return response({"message": "Unexpected event"}, 500)
-
-    context = {
-        "type": data['type'],
-        "channel": data['channel'],
-        "user": data['user'],
-        "team": data['team'],
-        "callback_id": data['callback_id'],
-        "response_url": data['response_url'],
-        "trigger_id": data['trigger_id'],
-    }
         
-    return call_function(data['text'], context)
+    f = data['actions'][0]['name']
+    p = data['actions'][0]['value']
+    return getattr(sys.modules[__name__], f)(p, data=data)
 
 
 def response(body, status=200):
@@ -69,6 +104,20 @@ def response(body, status=200):
     }
     logging.info(response)
     return response
+
+
+def slack_response(message, is_public=False):
+    """
+    Builds a data structure for sending a Slack message reply
+    """
+    response_type = "ephemeral"
+    if is_public is True:
+        response_type = "in_channel"
+
+    return response({
+        "response_type": "ephemeral",
+        "text": message
+    }, 200)
 
 
 def is_request_valid(event):
