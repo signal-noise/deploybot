@@ -22,6 +22,7 @@ FN_RESPONSE_STATUS_NOTEXISTS="This channel hasn't got any configuration at the m
 FN_RESPONSE_SETUP="Setting up `%s` in this channel. Note that you won't be able to use this channel for another project, or use that repo in another channel."
 FN_RESPONSE_DELETE_SUCCESS="Removed this channel's configuration for `%s`"
 FN_RESPONSE_DELETE_FAILURE="No config found for this channel"
+PROMPT_USER_BUTTONS="Select your GitHub username so we can connect it to your Slack username. If you don't see your name you don't have access to the repository"
 
 ERR_NO_FUNC_FOUND="I didn't understand that, try `%s help`. This may also be an error with my code." % COMMAND
 ERR_SETUP_PARAM_MISSING="You need to tell me which repo. Try `%s setup username/reponame`" % COMMAND
@@ -30,6 +31,7 @@ ERR_SETUP_PARAM_FORMAT=("The repo name should be two parts; the GitHub username 
 ERR_SETUP_CHANNEL_REPO_EXISTS="It looks as though that repo is already setup in this channel"
 ERR_SETUP_REPO_EXISTS="That repo is already setup in a different channel. Only one channel per repo."
 ERR_SETUP_CHANNEL_EXISTS="This channel is already setup for a different repo. Only one repo per channel."
+ERR_USER_BUTTON_FALLBACK="You are unable to introduce yourself for some reason. Sorry."
 
 SLACK_SIGNING_SECRET_VERSION="v0"
 
@@ -52,7 +54,7 @@ def help(*args, **kwargs):
     """
     Prints out usage information
     """
-    return FN_RESPONSE_HELP
+    return slack_response(FN_RESPONSE_HELP)
 
 
 def status(text, context):
@@ -63,8 +65,8 @@ def status(text, context):
     entries = table.scan()
     for entry in entries['Items']:
         if entry['slack_channelid'] == context['channel_id']:
-            return FN_RESPONSE_STATUS_EXISTS % entry['repository']
-    return FN_RESPONSE_STATUS_NOTEXISTS
+            return slack_response(FN_RESPONSE_STATUS_EXISTS % entry['repository'])
+    return slack_response(FN_RESPONSE_STATUS_NOTEXISTS)
 
 
 def setup(repo=None, context=None):
@@ -73,14 +75,14 @@ def setup(repo=None, context=None):
     """
     logging.info("context = {%s}" % ', '.join("%s: %r" % (key,val) for (key,val) in context.iteritems()))
     if repo is None or repo.strip() == "":
-        return ERR_SETUP_PARAM_MISSING
+        return slack_response(ERR_SETUP_PARAM_MISSING)
 
-    # check repo is one word only with a slash in it - does the below properly do that?
+    # @TODO check repo is one word only with a slash in it - does the below properly do that?
 
     try:
         (username, repository) = repo.split('/')
     except ValueError as e:
-        return ERR_SETUP_PARAM_FORMAT
+        return slack_response(ERR_SETUP_PARAM_FORMAT)
 
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE_PROJECT'])
 
@@ -99,13 +101,13 @@ def setup(repo=None, context=None):
     for entry in entries['Items']:
         if (entry['repository'] == item['repository'] 
                 and entry['slack_channelid'] == item['slack_channelid']):
-            return ERR_SETUP_CHANNEL_REPO_EXISTS
+            return slack_response(ERR_SETUP_CHANNEL_REPO_EXISTS)
 
         if entry['repository'] == item['repository']:
-            return ERR_SETUP_REPO_EXISTS
+            return slack_response(ERR_SETUP_REPO_EXISTS)
 
         if entry['slack_channelid'] == item['slack_channelid']:
-            return ERR_SETUP_CHANNEL_EXISTS
+            return slack_response(ERR_SETUP_CHANNEL_EXISTS)
 
     table.put_item(Item=item)
 
@@ -118,9 +120,11 @@ def setup(repo=None, context=None):
     string_response = response["Payload"].read().decode('utf-8')
     parsed_response = json.loads(string_response)
 
-    print("Lambda invocation message:", parsed_response)
-
-    return FN_RESPONSE_SETUP % repo
+    return slack_user_buttons(
+        FN_RESPONSE_SETUP % repo, 
+        parsed_response['collaborators'],
+        "%s:::%s" % (item['repository'], item['slack_channelid'])
+    )
 
 
 def reset(text, context):
@@ -137,8 +141,8 @@ def reset(text, context):
                     'slack_channelid': entry['slack_channelid']
                 }
             )
-            return FN_RESPONSE_DELETE_SUCCESS % entry['repository']
-    return FN_RESPONSE_DELETE_FAILURE
+            return slack_response(FN_RESPONSE_DELETE_SUCCESS % entry['repository'])
+    return slack_response(FN_RESPONSE_DELETE_FAILURE, True)
 
 
 #
@@ -179,7 +183,7 @@ def receive(event, context):
         "trigger_id": data['trigger_id'],
     }
         
-    return slack_response(call_function(data['text'], context))
+    return call_function(data['text'], context)
 
 
 def response(body, status=200):
@@ -199,13 +203,47 @@ def response(body, status=200):
     return response
 
 
-def slack_response(message):
+def slack_response(message, is_public=False):
     """
     Builds a data structure for sending a Slack message reply
     """
+    response_type = "ephemeral"
+    if is_public is True:
+        response_type = "in_channel"
+
     return response({
         "response_type": "ephemeral",
         "text": message
+    }, 200)
+
+
+def slack_user_buttons(message, github_users, callback_id="abcdef"):
+    """
+    Builds a data structure to send a message including a button per user
+    """
+    buttons = list(
+        map(
+            lambda x: { 
+                "name": "github_username",
+                "text": "@%s" % x,
+                "type": "button",
+                "value": x
+            },
+            github_users
+            )
+        )
+    return response({
+        "text": message,
+        "attachments": [
+            {
+                "text": PROMPT_USER_BUTTONS,
+                "fallback": ERR_USER_BUTTON_FALLBACK,
+                "callback_id": callback_id,
+                "color": "#000",
+                "attachment_type": "default",
+                "actions": buttons
+            }
+        ]
     }, 200)
 
 
@@ -249,7 +287,7 @@ def call_function(command_text, context):
         return getattr(sys.modules[__name__], f)(p, context=context)
     except Exception as e:
         logging.error(e)
-        return ERR_NO_FUNC_FOUND
+        return slack_response(ERR_NO_FUNC_FOUND)
 
 
 def get_form_variable_value(form_var):
