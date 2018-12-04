@@ -131,6 +131,6 @@ plugins:
 
 custom:
   pythonRequirements:
-    dockerizePip: false
+    dockerizePip: "non-linux"
     useDownloadCache: true
     useStaticCache: true
