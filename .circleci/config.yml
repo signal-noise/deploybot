@@ -2,7 +2,8 @@ version: 2
 jobs:
   build:
     docker:
-      - image: signalnoise/python:10.13-2.7
+      - image: signalnoise/base:10.13
+      # - image: signalnoise/python:10.13-2.7
     working_directory: ~/project
     steps:
       - checkout
