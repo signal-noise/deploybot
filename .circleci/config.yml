@@ -53,10 +53,9 @@ jobs:
   build:
     docker:
       - image: signalnoise/base:10.13
-      # - image: signalnoise/python:10.13-2.7
-    working_directory: ~/project
     steps:
-      - run: 'echo "this is just a dummy job for now... ENVIRONMENT=<< parameters.env >>"'
+      - checkout
+      - run: ./test.sh
 
 workflows:
   version: 2
