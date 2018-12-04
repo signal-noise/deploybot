@@ -15,7 +15,9 @@ provider:
     SLACK_CHANNEL: ${env:SLACK_CHANNEL}
     SLACK_SIGNING_SECRET: ${env:SLACK_SIGNING_SECRET}
     SLACK_TEAM_ID: ${env:SLACK_TEAM_ID}
-    GITHUB_AUTH_TOKEN: ${env:GITHUB_AUTH_TOKEN}
+    GITHUB_APP_PK: ${env:GITHUB_APP_PK}
+    GITHUB_APP_ID: ${env:GITHUB_APP_ID}
+    GITHUB_APP_INSTALLATIONID: ${env:GITHUB_APP_INSTALLATIONID}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -64,7 +66,7 @@ functions:
           method: post
           cors: true
   github_collaborators:
-    handler: github/collaborators.send
+    handler: github/collaborators.get
     # events:
     #   - http:
     #       path: github/collaborators
@@ -123,3 +125,12 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
         TableName: ${self:provider.environment.DYNAMODB_TABLE_BUILD}
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: "non-linux"
+    # useDownloadCache: true
+    # useStaticCache: true

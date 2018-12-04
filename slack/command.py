@@ -15,12 +15,12 @@ COMMAND='/cimon'
 
 FN_RESPONSE_HELP=("There are a few things you can ask me to do. "
     "Try `%s setup signal-noise/reponame` to get started, " 
-    "or `%s status` to see what's going on in this channel. "
+    "or `%s config` to see what's going on in this channel. "
     "There's `%s hello` to connect your Github and Slack accounts, and `%s bye` to undo that. "
     "There's also `%s reset` if you want to start over on this channel's configuration." % (COMMAND, COMMAND, COMMAND, COMMAND, COMMAND))
-FN_RESPONSE_STATUS_EXISTS="This channel is currently set up for `%s`. Some GitHub users aren't yet connected."
-FN_RESPONSE_STATUS_NOTEXISTS="This channel hasn't got any configuration at the moment."
-FN_RESPONSE_STATUS_ALL_GH_KNOWN="I know all the users oon this repository"
+FN_RESPONSE_CONFIG_EXISTS="This channel is currently set up for `%s`. Some GitHub users aren't yet connected."
+FN_RESPONSE_CONFIG_NOTEXISTS="This channel hasn't got any configuration at the moment."
+FN_RESPONSE_CONFIG_ALL_GH_KNOWN="I know all the users oon this repository"
 FN_RESPONSE_SETUP="Setting up `%s` in this channel. Note that you won't be able to use this channel for another project, or use that repo in another channel."
 FN_RESPONSE_RESET_SUCCESS="Removed this channel's configuration for `%s`"
 FN_REPSONSE_HELLO="Hi! Who are you when you're not here?"
@@ -63,7 +63,7 @@ def help(*args, **kwargs):
     return slack_response(FN_RESPONSE_HELP)
 
 
-def status(text, context):
+def config(text, context):
     """
     Prints out current setup information
     """
@@ -71,8 +71,8 @@ def status(text, context):
     entries = table.scan()
     for entry in entries['Items']:
         if entry['slack_channelid'] == context['channel_id']:
-            return slack_response(FN_RESPONSE_STATUS_EXISTS % entry['repository'])
-    return connect_github_user(FN_RESPONSE_STATUS_NOTEXISTS, entry['repository'], entry['slack_channelid'], FN_RESPONSE_STATUS_ALL_GH_KNOWN)
+            return slack_response(FN_RESPONSE_CONFIG_EXISTS % entry['repository'])
+    return connect_github_user(FN_RESPONSE_CONFIG_NOTEXISTS, entry['repository'], entry['slack_channelid'], FN_RESPONSE_CONFIG_ALL_GH_KNOWN)
 
 
 def setup(repo=None, context=None):

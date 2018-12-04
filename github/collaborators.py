@@ -1,16 +1,16 @@
 import json
 import logging
 import os
+from datetime import datetime, timedelta
+import time
 
-import boto3
-
+import jwt
 from botocore.vendored import requests
 
 GITHUB_GRAPHQL_URI="https://api.github.com/graphql"
 
 GRAPHQL_QUERY_COLLABORATORS="query {repository(owner:\"%s\", name:\"%s\") { collaborators (first:100) { totalCount nodes { login }}}}"
 
-dynamodb = boto3.resource('dynamodb')
 
 logger = logging.getLogger()
 if logger.handlers:
@@ -19,7 +19,7 @@ if logger.handlers:
 logging.basicConfig(level=logging.INFO)
 
 
-def send(event, context):
+def get(event, context):
     http_request = False
     data = event
     if 'body' in data:
@@ -39,7 +39,7 @@ def send(event, context):
 
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'bearer %s' % os.environ['GITHUB_AUTH_TOKEN']
+        'Authorization': 'bearer {}'.format(get_installation_token()) 
     }
     uri = 'https://api.github.com/graphql'
     payload = {
@@ -83,3 +83,40 @@ def response(body=None, status=200):
     }
     logging.info(response)
     return response
+
+
+def generate_jwt():
+    private_key = os.environ['GITHUB_APP_PK']
+    claim = {
+        # issued at time
+        "iat": int(time.time()),
+        # JWT expiration time (10 minute maximum)
+        "exp": int(time.time()) + (10 * 60),
+        # GitHub App's identifier
+        "iss": int(os.environ['GITHUB_APP_ID'])
+    }
+    token = jwt.encode(
+        claim,
+        private_key,
+        algorithm='RS256')
+
+    return token.decode('utf-8')
+
+
+def get_installation_token():
+    jwt = generate_jwt()
+
+    headers = {
+        'Accept': 'application/vnd.github.machine-man-preview+json',
+        'Authorization': 'Bearer {}'.format(jwt) 
+    }
+    uri = 'https://api.github.com/app/installations/{}/access_tokens'.format(os.environ['GITHUB_APP_INSTALLATIONID'])
+
+    r = requests.post(uri, headers=headers)
+    json_data = r.json()
+ 
+    return json_data['token']
+
+
+if __name__ == "__main__":
+    send({'repository': 'signal-noise/deploybot'}, '')

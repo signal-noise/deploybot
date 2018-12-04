@@ -3,13 +3,39 @@ jobs:
   build:
     docker:
       - image: signalnoise/base:10.13
+      # - image: signalnoise/python:10.13-2.7
     working_directory: ~/project
     steps:
+      - run: "circleci step halt" # we can't deploy from CI at the moment :/
       - checkout
       - run:
           name: Install Dependencies
           command: |
-            npm i serverless
+            npm ci
+            pip install --upgrade pip
+            apk add --no-cache --virtual .build-deps  \
+              bzip2-dev \
+              coreutils \
+              dpkg-dev dpkg \
+              findutils \
+              gcc \
+              gdbm-dev \
+              libc-dev \
+              libnsl-dev \
+              libressl-dev \
+              libtirpc-dev \
+              linux-headers \
+              make \
+              ncurses-dev \
+              pax-utils \
+              readline-dev \
+              sqlite-dev \
+              tcl-dev \
+              tk \
+              tk-dev \
+              zlib-dev \
+              python2-dev \
+              libffi-dev
       - run:
           name: Auth keys
           command: |
