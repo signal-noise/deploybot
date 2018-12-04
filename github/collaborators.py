@@ -20,8 +20,6 @@ logging.basicConfig(level=logging.INFO)
 
 
 def send(event, context):
-    # print get_installation_token()
-    # return
     http_request = False
     data = event
     if 'body' in data:
