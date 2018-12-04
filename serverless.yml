@@ -15,7 +15,9 @@ provider:
     SLACK_CHANNEL: ${env:SLACK_CHANNEL}
     SLACK_SIGNING_SECRET: ${env:SLACK_SIGNING_SECRET}
     SLACK_TEAM_ID: ${env:SLACK_TEAM_ID}
-    GITHUB_AUTH_TOKEN: ${env:GITHUB_AUTH_TOKEN}
+    GITHUB_APP_PK: ${env:GITHUB_APP_PK}
+    GITHUB_APP_ID: ${env:GITHUB_APP_ID}
+    GITHUB_APP_INSTALLATIONID: ${env:GITHUB_APP_INSTALLATIONID}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -129,4 +131,4 @@ plugins:
 
 custom:
   pythonRequirements:
-    dockerizePip: false
+    dockerizePip: non-linux

@@ -1,6 +1,8 @@
 import json
 import logging
 import os
+from datetime import datetime, timedelta
+import time
 
 import jwt
 from botocore.vendored import requests
@@ -18,6 +20,8 @@ logging.basicConfig(level=logging.INFO)
 
 
 def send(event, context):
+    # print get_installation_token()
+    # return
     http_request = False
     data = event
     if 'body' in data:
@@ -37,7 +41,7 @@ def send(event, context):
 
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'bearer %s' % os.environ['GITHUB_AUTH_TOKEN']
+        'Authorization': 'bearer {}'.format(get_installation_token()) 
     }
     uri = 'https://api.github.com/graphql'
     payload = {
@@ -83,6 +87,44 @@ def response(body=None, status=200):
     return response
 
 
+def generate_jwt():
+    private_key = os.environ['GITHUB_APP_PK']
+    claim = {
+        # issued at time
+        "iat": int(time.time()),
+        # JWT expiration time (10 minute maximum)
+        "exp": int(time.time()) + (10 * 60),
+        # GitHub App's identifier
+        "iss": int(os.environ['GITHUB_APP_ID'])
+    }
+    token = jwt.encode(
+        claim,
+        private_key,
+        algorithm='RS256')
+
+    return token.decode('utf-8')
+
+
+def get_installation_token():
+    jwt = generate_jwt()
+
+    headers = {
+        'Accept': 'application/vnd.github.machine-man-preview+json',
+        'Authorization': 'Bearer {}'.format(jwt) 
+    }
+    uri = 'https://api.github.com/app/installations/{}/access_tokens'.format(os.environ['GITHUB_APP_INSTALLATIONID'])
+
+    r = requests.post(uri, headers=headers)
+    json_data = r.json()
+    print json_data['token']
+ 
+    return json_data['token']
+
+def read_private_key():
+    with open(os.environ['PRIVATE_KEY_FILE']) as fp:
+        private_key = fp.read()
+    return private_key
+
 
 if __name__ == "__main__":
-    send({'repository': 'signal-noise/website'}, '')
+    send({'repository': 'signal-noise/deploybot'}, '')
