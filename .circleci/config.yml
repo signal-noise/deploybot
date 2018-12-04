@@ -6,7 +6,7 @@ jobs:
       # - image: signalnoise/python:10.13-2.7
     working_directory: ~/project
     steps:
-      - "circleci step halt || true" # we can't deploy from CI at the moment :/
+      - "[[ 1 == 1]] && circleci step halt || true" # we can't deploy from CI at the moment :/
       - checkout
       - run:
           name: Install Dependencies
