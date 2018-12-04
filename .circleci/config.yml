@@ -10,6 +10,7 @@ jobs:
           name: Install Dependencies
           command: |
             npm i serverless
+            npm i serverless-python-requirements
       - run:
           name: Auth keys
           command: |

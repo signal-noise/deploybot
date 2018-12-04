@@ -3,5 +3,8 @@
   "version": "0.1.0",
   "description": "Serverless bot integrating with Slack, GitHub and CircleCI to automate workflows",
   "author": "@marcelkornblum",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "serverless-python-requirements": "^4.2.5"
+  }
 }

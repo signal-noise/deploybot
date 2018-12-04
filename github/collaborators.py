@@ -2,15 +2,13 @@ import json
 import logging
 import os
 
-import boto3
-
+import jwt
 from botocore.vendored import requests
 
 GITHUB_GRAPHQL_URI="https://api.github.com/graphql"
 
 GRAPHQL_QUERY_COLLABORATORS="query {repository(owner:\"%s\", name:\"%s\") { collaborators (first:100) { totalCount nodes { login }}}}"
 
-dynamodb = boto3.resource('dynamodb')
 
 logger = logging.getLogger()
 if logger.handlers:
@@ -83,3 +81,8 @@ def response(body=None, status=200):
     }
     logging.info(response)
     return response
+
+
+
+if __name__ == "__main__":
+    send({'repository': 'signal-noise/website'}, '')
