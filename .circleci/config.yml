@@ -55,7 +55,7 @@ jobs:
       - image: signalnoise/base:10.13
     steps:
       - checkout
-      - run: ./test.sh
+      - run: ./.circleci/test.sh
 
 workflows:
   version: 2
