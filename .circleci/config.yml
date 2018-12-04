@@ -9,9 +9,7 @@ jobs:
       - checkout
       - run:
           name: Install Dependencies
-          command: |
-            npm i serverless
-            npm i serverless-python-requirements
+          command: npm ci
       - run:
           name: Auth keys
           command: |
