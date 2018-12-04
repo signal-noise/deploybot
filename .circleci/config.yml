@@ -50,6 +50,9 @@ jobs:
           name: Notify
           command: ./.circleci/notify.sh
 
+  deploy:
+    run: 'echo "this is just a dummy job for now... ${ENVIRONMENT}"'
+
 workflows:
   version: 2
   test_and_build:
