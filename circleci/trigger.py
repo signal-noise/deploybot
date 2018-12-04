@@ -37,7 +37,7 @@ def send(event, context):
     headers = { 'Content-Type': 'application/json' }
     uri = '%s/project/github/%s/%s?circle-token=%s' % (CIRCLECI_API_URI, username, repository, os.environ['CIRCLECI_API_TOKEN'])
     payload = {
-        "revision": '6f21aa27a1a8e7ab95733cfc89885c5f8ede1066',
+        "revision": '67e74e4854659fc0ffaef14042da941d8183a6e0',
         "build_parameters": {
             'ENVIRONMENT': 'test'
         }
