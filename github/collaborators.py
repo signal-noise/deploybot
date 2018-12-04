@@ -19,7 +19,7 @@ if logger.handlers:
 logging.basicConfig(level=logging.INFO)
 
 
-def send(event, context):
+def get(event, context):
     http_request = False
     data = event
     if 'body' in data:
