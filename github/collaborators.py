@@ -116,7 +116,6 @@ def get_installation_token():
 
     r = requests.post(uri, headers=headers)
     json_data = r.json()
-    print json_data['token']
  
     return json_data['token']
 
