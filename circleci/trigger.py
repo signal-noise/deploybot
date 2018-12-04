@@ -7,8 +7,7 @@ import time
 import jwt
 from botocore.vendored import requests
 
-CIRCLECI_API_URI="https://api.github.com/graphql"
-
+CIRCLECI_API_URI="https://circleci.com/api/v1.1"
 
 logger = logging.getLogger()
 if logger.handlers:
@@ -29,24 +28,26 @@ def send(event, context):
         raise Exception("Couldn't set up the repository.")
         return
 
-    # try:
-    #     (username, repository) = data['repository'].split('/')
-    # except ValueError as e:
-    #     logging.error("Validation Failed")
-    #     raise Exception("Couldn't set up the repository.")
+    try:
+        (username, repository) = data['repository'].split('/')
+    except ValueError as e:
+        logging.error("Validation Failed")
+        raise Exception("Couldn't set up the repository.")
 
-    # headers = {
-    #     'Content-Type': 'application/json',
-    #     'Authorization': 'bearer {}'.format(get_installation_token()) 
-    # }
-    # uri = 'https://api.github.com/graphql'
-    # payload = {
-    #     "query": GRAPHQL_QUERY_COLLABORATORS % (username, repository),
-    # }
+    headers = { 'Content-Type': 'application/json' }
+    uri = '%s/project/github/%s/%s?circle-token=%s' % (CIRCLECI_API_URI, username, repository, os.environ['CIRCLECI_API_TOKEN'])
+    payload = {
+        "revision": '3df261bc1f781cf9260db66cfa4eaed2becc69d4',
+        "build_parameters": {
+            'ENVIRONMENT': 'test'
+        }
+    }
 
-    # r = requests.post(uri, data=json.dumps(payload), headers=headers)
-    # json_data = r.json()
-    # logging.info(json_data)
+    r = requests.post(uri, data=json.dumps(payload), headers=headers)
+    print uri
+    print r.json()
+    json_data = r.json()
+    logging.info(json_data)
     # response_data = {
     #     "count": json_data['data']['repository']['collaborators']['totalCount'],
     #     "collaborators": list(map(
@@ -84,4 +85,4 @@ def response(body=None, status=200):
 
 
 if __name__ == "__main__":
-    send('', '')
+    send({'repository': 'signal-noise/deploybot'}, '')

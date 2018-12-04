@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  build:
+  test:
     docker:
       - image: signalnoise/base:10.13
       # - image: signalnoise/python:10.13-2.7
@@ -57,5 +57,5 @@ workflows:
   version: 2
   test_and_build:
     jobs:
-      - build:
+      - test:
           context: sn-global

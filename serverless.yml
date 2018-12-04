@@ -18,6 +18,7 @@ provider:
     GITHUB_APP_PK: ${env:GITHUB_APP_PK}
     GITHUB_APP_ID: ${env:GITHUB_APP_ID}
     GITHUB_APP_INSTALLATIONID: ${env:GITHUB_APP_INSTALLATIONID}
+    CIRCLECI_API_TOKEN: ${env:CIRCLECI_API_TOKEN}
   iamRoleStatements:
     - Effect: Allow
       Action:
