@@ -56,7 +56,7 @@ jobs:
       # - image: signalnoise/python:10.13-2.7
     working_directory: ~/project
     steps:
-      - run: 'echo "this is just a dummy job for now... ${ENVIRONMENT}"'
+      - run: 'echo "this is just a dummy job for now... ENVIRONMENT=<< parameters.env >>"'
 
 workflows:
   version: 2
