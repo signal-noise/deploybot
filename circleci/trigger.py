@@ -37,17 +37,18 @@ def send(event, context):
     headers = { 'Content-Type': 'application/json' }
     uri = '%s/project/github/%s/%s?circle-token=%s' % (CIRCLECI_API_URI, username, repository, os.environ['CIRCLECI_API_TOKEN'])
     payload = {
-        "revision": '3df261bc1f781cf9260db66cfa4eaed2becc69d4',
+        "revision": '6f21aa27a1a8e7ab95733cfc89885c5f8ede1066',
         "build_parameters": {
             'ENVIRONMENT': 'test'
         }
     }
 
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
-    print uri
-    print r.json()
+    # print uri
+    # print r.json()
     json_data = r.json()
     logging.info(json_data)
+    response_data = json_data
     # response_data = {
     #     "count": json_data['data']['repository']['collaborators']['totalCount'],
     #     "collaborators": list(map(
