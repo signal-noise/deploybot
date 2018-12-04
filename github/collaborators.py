@@ -120,11 +120,6 @@ def get_installation_token():
  
     return json_data['token']
 
-def read_private_key():
-    with open(os.environ['PRIVATE_KEY_FILE']) as fp:
-        private_key = fp.read()
-    return private_key
-
 
 if __name__ == "__main__":
     send({'repository': 'signal-noise/deploybot'}, '')
