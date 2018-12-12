@@ -16,7 +16,8 @@ logging.basicConfig(level=logging.INFO)
 
 
 def receive(event, context):
-    # data = json.loads(event['body'])
+    data = json.loads(event['body'])
+    logging.info(data)
     # if 'text' not in data:
     #     logging.error("Validation Failed")
     #     raise Exception("Couldn't send the message.")

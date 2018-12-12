@@ -73,6 +73,13 @@ functions:
     #       path: github/collaborators
     #       method: post
     #       cors: true
+  circleci_trigger:
+    handler: circleci/trigger.send
+    # events:
+    #   - http:
+    #       path: circleci/trigger
+    #       method: post
+    #       cors: true
 
 resources:
   Resources:

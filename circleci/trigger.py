@@ -25,37 +25,39 @@ def send(event, context):
 
     if 'repository' not in data:
         logging.error("Validation Failed")
-        raise Exception("Couldn't set up the repository.")
+        raise Exception("Couldn't trigger a build.")
         return
 
     try:
         (username, repository) = data['repository'].split('/')
     except ValueError as e:
         logging.error("Validation Failed")
-        raise Exception("Couldn't set up the repository.")
+        raise Exception("Couldn't trigger a build.")
+
+    if 'revision' not in data and 'tag' not in data:
+        logging.error("Validation Failed")
+        raise Exception("Couldn't trigger a build.")
+        return
 
     headers = { 'Content-Type': 'application/json' }
     uri = '%s/project/github/%s/%s?circle-token=%s' % (CIRCLECI_API_URI, username, repository, os.environ['CIRCLECI_API_TOKEN'])
     payload = {
-        "revision": '1a35577621812986dfe73ca57a7728b2e76e60bc',
+        "revision": data['revision'],
         "build_parameters": {
-            'ENVIRONMENT': 'test'
+            'ENVIRONMENT': 'test',
+            'VERSION': '',
+            'SUBDOMAIN': '',
         }
     }
 
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
-    # print uri
-    # print r.json()
     json_data = r.json()
-    logging.info(json_data)
-    response_data = json_data
-    # response_data = {
-    #     "count": json_data['data']['repository']['collaborators']['totalCount'],
-    #     "collaborators": list(map(
-    #         lambda x: x['login'], 
-    #         json_data['data']['repository']['collaborators']['nodes']
-    #     ))
-    # }
+    # logging.info(json_data)
+    response_data = {
+        "build_url": json_data['build_url'],
+        "build_num": json_data['build_num'],
+        "github_username": json_data['committer_name']
+    }
 
     if http_request:
         response = {
@@ -86,4 +88,4 @@ def response(body=None, status=200):
 
 
 if __name__ == "__main__":
-    send({'repository': 'signal-noise/deploybot'}, '')
+    send({'repository': 'signal-noise/deploybot', 'revision': '6366aefd6dfa0891f89417edf88844667e5f2d55', 'environment': 'test'}, '')
