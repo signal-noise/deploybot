@@ -4,6 +4,7 @@ frameworkVersion: ">=1.1.0 <2.0.0"
 
 provider:
   name: aws
+  profile: deploybot
   stage: dev
   region: eu-west-2
   runtime: python2.7
@@ -38,6 +39,26 @@ provider:
       Resource: "*"
 
 functions:
+  circleci_trigger:
+    handler: circleci/trigger.send
+
+  github_collaborators:
+    handler: github/collaborators.get
+  github_deployment_create:
+    handler: github/deployment.create
+    events:
+      - http:
+          path: github/deployment/create
+          method: post
+          cors: true
+  github_event:
+    handler: github/webhook.receive
+    events:
+      - http:
+          path: github/webhook
+          method: post
+          cors: true
+
   slack_command:
     handler: slack/command.receive
     events:
@@ -54,32 +75,6 @@ functions:
           cors: true
   slack_message:
     handler: slack/message.send
-    # events:
-    #   - http:
-    #       path: slack/message
-    #       method: post
-    #       cors: true
-  github_event:
-    handler: github/webhook.receive
-    events:
-      - http:
-          path: github/webhook
-          method: post
-          cors: true
-  github_collaborators:
-    handler: github/collaborators.get
-    # events:
-    #   - http:
-    #       path: github/collaborators
-    #       method: post
-    #       cors: true
-  circleci_trigger:
-    handler: circleci/trigger.send
-    # events:
-    #   - http:
-    #       path: circleci/trigger
-    #       method: post
-    #       cors: true
 
 resources:
   Resources:

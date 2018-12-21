@@ -9,7 +9,17 @@ from botocore.vendored import requests
 
 GITHUB_GRAPHQL_URI="https://api.github.com/graphql"
 
-GRAPHQL_QUERY_COLLABORATORS="query {repository(owner:\"%s\", name:\"%s\") { collaborators (first:100) { totalCount nodes { login }}}}"
+GRAPHQL_QUERY_COLLABORATORS="""
+    query {
+        repository(owner:\"%s\", name:\"%s\") { 
+            collaborators (first:100) { 
+                totalCount nodes { 
+                    login 
+                }
+            }
+        }
+    }
+"""
 
 
 logger = logging.getLogger()

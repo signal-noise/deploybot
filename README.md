@@ -41,7 +41,7 @@ Get GH App PK and ID
 Get Slack App signing secret, webhook url, team ID
 Get CircleCI API token
 
-configure circleci project for auto-deploy
+configure circleci project for auto-deploy - see other readme
 
 npm i
 
@@ -77,7 +77,11 @@ The GitHub connectors are slightly more varied.
 
 ### CircleCI
 
-Simples....
+- `trigger` POSTS to the CircleCI API to trigger a job called `build` on the given repo.
+
+### Asana
+
+...
 
 ## Data model
 
