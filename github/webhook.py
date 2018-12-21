@@ -23,8 +23,34 @@ def pull_request(data=None):
     action = data['action']
     if action == 'opened':
         logging.info('create deployment for PR %s' % data['number'])
-    if action == 'closed' and data['pull_request']['merged'] is True:
-        logging.info('create deployment for master')
+    # if action == 'closed' and data['pull_request']['merged'] is True:
+    #     logging.info('create deployment for master')
+        trigger_deployment({
+            'repository': repository, 
+            'environment': 'pr', 
+            'number': data['pull_request']['number']
+        })
+    return
+
+
+def push(data=None):
+    """
+    Processes Push actions
+    """
+    env = None
+    if data['ref'] == 'refs/heads/master':
+        env = 'preview'
+    elif data['ref'][:13] == 'refs/heads/release':
+        env = 'test'
+    elif data['ref'][:11] == 'refs/tags/v':
+        env = 'production'
+
+    if env is not None:
+        trigger_deployment({
+            'repository': repository, 
+            'environment': env, 
+            'ref': data['ref']
+        })
     return
 
 
@@ -104,3 +130,19 @@ def call_function(event_type, data):
     except Exception as e:
         logging.error(e)
         return 
+
+
+def trigger_deployment(payload):
+    """
+    Trigger the function that creates the GH deployment with the given payload
+    """
+    response = lambda_client.invoke(
+        FunctionName="{}-github_deployment_create".format(os.environ['FUNCTION_PREFIX']),
+        InvocationType='RequestResponse',
+        Payload=json.dumps(payload)
+    )
+
+    string_response = response["Payload"].read().decode('utf-8')
+    parsed_response = json.loads(string_response)
+    logging.info(parsed_response)
+    return parsed_response

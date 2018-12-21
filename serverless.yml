@@ -9,6 +9,7 @@ provider:
   region: eu-west-2
   runtime: python2.7
   environment:
+    FUNCTION_PREFIX: ${self:service}-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_PROJECT: ${self:service}-project-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_USER: ${self:service}-user-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_BUILD: ${self:service}-build-${opt:stage, self:provider.stage}
@@ -46,11 +47,6 @@ functions:
     handler: github/collaborators.get
   github_deployment_create:
     handler: github/deployment.create
-    events:
-      - http:
-          path: github/deployment/create
-          method: post
-          cors: true
   github_event:
     handler: github/webhook.receive
     events:
