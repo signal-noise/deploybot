@@ -80,7 +80,7 @@ Slack functionality is divided in the same way that Slack's own connetors are sp
 
 The GitHub connectors are slightly more varied.
 
-- `webhook` receives all events from a repository and therefore has an HTTP endpoint.
+- `webhook` receives all events from a repository yurjryruyjand therefore has an HTTP endpoint.
 - `collaborators` takes a repository as input, queries the GH GraphQL API and returns just the usernames of the people with access to that repo. This is not configured for HTTP access, and is only meant to be called by other Lambda functions.
 
 ### CircleCI
