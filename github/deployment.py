@@ -80,11 +80,7 @@ def getCreateDeploymentMutation(mutation_vars):
                     refId: "$refId",  
                     environment: "$environment",   
                     description: "$description", 
-                    payload: {
-                        url: "$url"
-                    } 
-                    autoMerge: false,  
-                    requiredContexts: [] 
+                    autoMerge: false
                 } 
             ) {  
                 deployment {
@@ -93,11 +89,24 @@ def getCreateDeploymentMutation(mutation_vars):
             } 
         }
     """
+                    # removed from input above: 
+                    # payload: {
+                    #     url: "$url"
+                    # }  
+                    # requiredContexts: [] 
     t = Template(mutation)
     return { 'query': t.substitute(mutation_vars) }
 
 
 def getGitHubIds(**args):
+    """
+    Executes an API call based around the repo info query, to return NodeIDs 
+    of relevant Github objects. 
+    repoOwner :required
+    repoName : required
+    refName
+    prNumber
+    """
     headers = {
         'Content-Type': 'application/json',
         'Authorization': 'bearer {}'.format(get_installation_token()) 
@@ -119,7 +128,12 @@ def getGitHubIds(**args):
     return ids
 
 
-def createDeployment(repoId, refId, env, url):
+def createDeployment(repoId, refId, env, description=None, url=None):
+    """
+    Executes an API call based around the createdeployment mutation. 
+    """
+    if description is None:
+        description = "Automatically created by SN Deploybot"
     headers = {
         'Accept': 'application/vnd.github.flash-preview+json',
         'Content-Type': 'application/json',
@@ -131,16 +145,24 @@ def createDeployment(repoId, refId, env, url):
         'refId': refId, 
         'environment': env, 
         'description': 'a local run test',
-        'url': 'http://hello.com'
+        # 'url': 'http://hello.com'
     })
 
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
-    print(payload)
     json_data = r.json()
     logging.info(json_data)
+    return json_data['data']['createDeployment']['deployment']['id']
 
 
 def create(event, context):
+    """
+    Main endpoint for creating GitHub Deployments. Designed to be triggered by another
+    function but will work if triggered via HTTP or even locally/directly.
+    Expects to be provided with
+    repository (e.g. signal-noise/deploybot)
+    environment
+    ref (or number if environment is PR)
+    """
     http_request = False
     data = event
     if 'body' in data:
@@ -149,29 +171,61 @@ def create(event, context):
 
     if 'repository' not in data:
         logging.error("Validation Failed")
-        raise Exception("Couldn't set up the repository.")
+        raise Exception("Couldn't trigger the deployment.")
+        return
+
+    if 'environment' not in data:
+        logging.error("Validation Failed")
+        raise Exception("Couldn't trigger the deployment.")
         return
 
     try:
         (username, repository) = data['repository'].split('/')
     except ValueError as e:
         logging.error("Validation Failed")
-        raise Exception("Couldn't set up the repository.")
+        raise Exception("Couldn't trigger the deployment.")
+        return
 
-    # what kind of deployment is this?
-    # PR
+    # What kind of deployment is this?
+    # PR (number)
     # Preview (master branch commit)
     # Staging / Test (release branch commit, different triggers)
     # Production (tag)
 
-    ids = getGitHubIds(repoOwner=username, repoName=repository)
-    print(ids)
+    env = data['environment'].lower()
+    if env not in ('pr', 'preview', 'test', 'staging', 'production'):
+        logging.error("%s not a valid environment" % env)
+        raise Exception("Couldn't trigger the deployment.")
+        return
+
+    if env == 'pr' and 'number' not in data:
+        logging.error("no valid PR number")
+        raise Exception("Couldn't trigger the deployment.")
+        return
+
+    if env != 'pr' and 'ref' not in data:
+        logging.error("no valid ref")
+        raise Exception("Couldn't trigger the deployment.")
+        return
+
+    args = {
+        "repoOwner": username, 
+        "repoName": repository
+    }
+    if env == 'pr':
+        args['prNumber'] = data['number']
+    else:
+        args['refName'] = data['ref']
+
+    ids = getGitHubIds(**args)
+
+    if env == 'pr':
+        ids['refId'] = ids['prHeadRefId']
+
+    deployment_id = createDeployment(ids['repoId'], ids['refId'], env)
+
     response_data = {
-        # "count": json_data['data']['repository']['collaborators']['totalCount'],
-        # "collaborators": list(map(
-        #     lambda x: x['login'], 
-        #     json_data['data']['repository']['collaborators']['nodes']
-        # ))
+        "deployment_id": deployment_id
     }
 
     if http_request:
@@ -236,4 +290,4 @@ def get_installation_token():
 
 
 if __name__ == "__main__":
-    create({'repository': 'signal-noise/deploybot'}, '')
+    create({'repository': 'signal-noise/deploybot', 'environment': 'pr', 'number': 13}, '')
