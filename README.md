@@ -20,7 +20,7 @@ The default command is called `cimon`.
 
 In a slack channel, typing `/cimon setup <username>/<repository>` will start the process off, and trigger a message asking you to select your GitHub username from the list of users with access to that repository. `/cimon reset` will forget the setup, though not the user connections.
 
-`/cimon hello` will get the bot to look at the channel's existing repository for GH users that it doesn't already know the Slack usernames of and return the set of buttons. `/cimon goodbye` undoes this for your user.
+`/cimon hello` will get the bot to look at the channel's existing repository for GH users that it doesn't already know the Slack usernames of and return a set of buttons; pressing one will claim that GH username for the user who pressed it. `/cimon goodbye` undoes this for your user.
 
 `/cimon config` will output the current configuration in place.
 
