@@ -97,7 +97,7 @@ This saves the `slack_channelid` against the `repository` (in the format `github
 
 ### User
 
-This simple table saves the `slack_userid` against the `github_username`, to allow _@_ notifications from GitHub events in Slack. Again, it also stores `slack_username` for ease of use.
+This simple table saves the `slack_userid` against the `github_username`, to allow _@_ notifications from GitHub events in Slack. Agn, it also stores `slack_username` for ease of use.
 
 ### Build
 
