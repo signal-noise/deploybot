@@ -84,7 +84,8 @@ def getCreateDeploymentMutation(mutation_vars):
                 } 
             ) {  
                 deployment {
-                    id
+                    id,
+                    latestStatus
                 } 
             } 
         }

@@ -23,13 +23,11 @@ def pull_request(data=None):
     action = data['action']
     if action == 'opened':
         logging.info('create deployment for PR %s' % data['number'])
-    # if action == 'closed' and data['pull_request']['merged'] is True:
-    #     logging.info('create deployment for master')
         trigger_deployment({
             'repository': data['repository']['full_name'], 
             'environment': 'pr', 
             'number': data['pull_request']['number'],
-            'ref': "refs/heads/{}".format(data['pull_request']['head']['ref'])
+            'ref': "refs/heads/{}".format(data['pull_request']['head']['ref']),
             'trigger': 'gh_event',
             'commit_author': data['head_commit']['author']['username'],
             'commit_sha': data['head_commit']['id']
@@ -51,10 +49,11 @@ def push(data=None):
         env = 'production'
     else:
         # if ref is headref of an open PR
-        table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYREF'])
+        table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
         result = table.get_item(
+            IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYREF'],
             Key={
-                'repository': data['repository']['full_name']
+                'repository': data['repository']['full_name'],
                 'ref': data['ref']
             }
         )
