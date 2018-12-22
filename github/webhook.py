@@ -9,6 +9,7 @@ from boto3.dynamodb.conditions import Key
 from botocore.vendored import requests
 
 dynamodb = boto3.resource('dynamodb')
+lambda_client = boto3.client('lambda', region_name="eu-west-2",)
 
 logger = logging.getLogger()
 if logger.handlers:
@@ -31,9 +32,22 @@ def pull_request(data=None):
             'number': data['pull_request']['number'],
             'ref': "refs/heads/{}".format(data['pull_request']['head']['ref']),
             'trigger': 'gh_event',
-            'commit_author': data['head_commit']['author']['username'],
-            'commit_sha': data['head_commit']['id']
+            'commit_author': data['pull_request']['head']['user']['login'],
+            'commit_sha': data['pull_request']['head']['sha']
         })
+    elif action == 'synchronize':
+        logging.info('create deployment for new push to PR {}'.format(data['number']))
+        trigger_deployment({
+            'repository': data['repository']['full_name'], 
+            'environment': 'pr', 
+            'number': data['pull_request']['number'],
+            'ref': "refs/heads/{}".format(data['pull_request']['head']['ref']),
+            'trigger': 'gh_event',
+            'commit_author': data['pull_request']['head']['user']['login'],
+            'commit_sha': data['pull_request']['head']['sha']
+        })
+    # @TODO action = closed, merged = false
+    # should trigger deployment cancel
     return
 
 
@@ -49,20 +63,10 @@ def push(data=None):
         env = 'test'
     elif data['ref'][:11] == 'refs/tags/v':
         env = 'production'
-    else:
-        # if ref is headref of an open PR
-        table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
-        result = table.query(
-            IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYREF'],
-            KeyConditionExpression=Key('repository').eq(data['repository']['full_name']) & Key('ref').eq(data['ref'])
-        )
-        logging.info('~~GET REF~~')
-        logging.info(result)
-        env = 'pr'
 
     if env is not None:
         trigger_deployment({
-            'repository': repository, 
+            'repository': data['repository']['full_name'], 
             'environment': env, 
             'ref': data['ref'],
             'trigger': 'gh_event',

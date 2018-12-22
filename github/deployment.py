@@ -5,8 +5,11 @@ from datetime import datetime, timedelta
 import time
 from string import Template
 
+import boto3
 import jwt
 from botocore.vendored import requests
+
+dynamodb = boto3.resource('dynamodb')
 
 GITHUB_GRAPHQL_URI="https://api.github.com/graphql"
 
@@ -85,7 +88,9 @@ def getCreateDeploymentMutation(mutation_vars):
             ) {  
                 deployment {
                     id,
-                    latestStatus
+                    latestStatus {
+                        state
+                    }
                 } 
             } 
         }
@@ -129,8 +134,7 @@ def getGitHubIds(**args):
     return ids
 
 
-def createDeployment(repoId, refId, env, description=None{ 
-url=None):
+def createDeployment(repoId, refId, env, description=None, url=None):
     """
     Executes an API call based around the createdeployment mutation. 
     """
@@ -244,13 +248,13 @@ def create(event, context):
     item['repo_github_id'] = ids['repoId']
     item['ref_github_id'] = ids['refId']
 
-    deployment_id = createDeployment(ids['repoId'], ids['refId'], env)
+    item['id'] = createDeployment(ids['repoId'], ids['refId'], env)
 
     logging.info("item = {%s}" % ', '.join("%s: %r" % (key,val) for (key,val) in item.iteritems()))
     table.put_item(Item=item)
 
     response_data = {
-        "deployment_id": deployment_id
+        "deployment_id": item['id']
     }
     if http_request:
         response = {
