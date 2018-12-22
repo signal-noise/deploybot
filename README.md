@@ -30,7 +30,7 @@ In a slack channel, typing `/cimon setup <username>/<repository>` will start the
 
 ## Installation
 
-Set up an AWS account, following the [Serverless documentation](https://serverless.com/framework/docs/providers/aws/guide/credentials/). Get the Access Key and Secret, and save them to your `~.aws/credentials` file under the `deploybot` profile if you intend to deploy manually (recommended). Uncomment the resources section of `serverless.yml` and deploy so that you have live endpoints, then re-comment the DynamoDB tables, as you can't redeploy over the top of them.
+Set up an AWS account, following the [Serverless documentation](https://serverless.com/framework/docs/providers/aws/guide/credentials/). Get the Access Key and Secret, and save them to your `~.aws/credentials` file under the `deploybot` profile if you intend to deploy manually (recommended). Uncomment the resources section of `serverless.yml` and deploy so that you have live endpoints, then re-comment the DynamoDB tables, as you can't redeploy over the top of them. You'll need to manually create the GSI for the deployments table defined in the YAML file as that doesn't seem to be working via serverless; you'll also need to explicitly allow the created Role to access the index via IAM.
 
 Set up a GitHub app for your organisation; navigate to your organisation settings, go to GitHub Apps and create a new one. Fill in the Name, Description and Homepage fields, then add the endpoint for your `github_event` function to the Webhook URL field. You then need to install it; ideally to all repositories. You'll need to get the App's `ID` and `Private Key` as well as its `Installation ID`.
 
