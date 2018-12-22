@@ -26,9 +26,13 @@ def pull_request(data=None):
     # if action == 'closed' and data['pull_request']['merged'] is True:
     #     logging.info('create deployment for master')
         trigger_deployment({
-            'repository': repository, 
+            'repository': data['repository']['full_name'], 
             'environment': 'pr', 
-            'number': data['pull_request']['number']
+            'number': data['pull_request']['number'],
+            'ref': "refs/heads/{}".format(data['pull_request']['head']['ref'])
+            'trigger': 'gh_event',
+            'commit_author': data['head_commit']['author']['username'],
+            'commit_sha': data['head_commit']['id']
         })
     return
 
@@ -38,18 +42,34 @@ def push(data=None):
     Processes Push actions
     """
     env = None
+
     if data['ref'] == 'refs/heads/master':
         env = 'preview'
     elif data['ref'][:13] == 'refs/heads/release':
         env = 'test'
     elif data['ref'][:11] == 'refs/tags/v':
         env = 'production'
+    else:
+        # if ref is headref of an open PR
+        table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYREF'])
+        result = table.get_item(
+            Key={
+                'repository': data['repository']['full_name']
+                'ref': data['ref']
+            }
+        )
+        logging.info('~~GET REF~~')
+        logging.info(result)
+    #    env = 'pr'
 
     if env is not None:
         trigger_deployment({
             'repository': repository, 
             'environment': env, 
-            'ref': data['ref']
+            'ref': data['ref'],
+            'trigger': 'gh_event',
+            'commit_author': data['head_commit']['author']['username'],
+            'commit_sha': data['head_commit']['id']
         })
     return
 

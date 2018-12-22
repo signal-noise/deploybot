@@ -145,7 +145,7 @@ url=None):
         'repoId': repoId, 
         'refId': refId, 
         'environment': env, 
-        'description': 'a local run test',
+        'description': description,
         # 'url': 'http://hello.com'
     })
 
@@ -213,8 +213,26 @@ def create(event, context):
         "repoOwner": username, 
         "repoName": repository
     }
+    table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
+    timestamp = int(time.mktime(datetime.now().timetuple()))
+    item = {
+        'repository': data['repository'],
+        'environment': env,
+        'createdAt': timestamp,
+        'updatedAt': timestamp,
+    }
+    if 'ref' in data:
+        item['ref'] = data['ref']
+    if 'trigger' in data:
+        item['trigger'] = data['trigger']
+    if 'commit_sha' in data:
+        item['commit_sha'] = data['commit_sha']
+    if 'commit_author' in data:
+        item['commit_author_github_login'] = data['commit_author']
+
     if env == 'pr':
         args['prNumber'] = data['number']
+        item['pr'] = data['number']
     else:
         args['refName'] = data['ref']
 
@@ -222,13 +240,17 @@ def create(event, context):
 
     if env == 'pr':
         ids['refId'] = ids['prHeadRefId']
+    item['repo_github_id'] = ids['repoId']
+    item['ref_github_id'] = ids['refId']
 
     deployment_id = createDeployment(ids['repoId'], ids['refId'], env)
+
+    logging.info("item = {%s}" % ', '.join("%s: %r" % (key,val) for (key,val) in item.iteritems()))
+    table.put_item(Item=item)
 
     response_data = {
         "deployment_id": deployment_id
     }
-
     if http_request:
         response = {
             "statusCode": r.status_code,

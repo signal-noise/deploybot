@@ -5,14 +5,15 @@ frameworkVersion: ">=1.1.0 <2.0.0"
 provider:
   name: aws
   profile: deploybot
-  stage: dev
+  stage: production
   region: eu-west-2
   runtime: python2.7
   environment:
     FUNCTION_PREFIX: ${self:service}-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_PROJECT: ${self:service}-project-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_USER: ${self:service}-user-${opt:stage, self:provider.stage}
-    DYNAMODB_TABLE_BUILD: ${self:service}-build-${opt:stage, self:provider.stage}
+    DYNAMODB_TABLE_DEPLOYMENT: ${self:service}-deployment-${opt:stage, self:provider.stage}
+    DYNAMODB_TABLE_DEPLOYMENT_BYREF: ${self:service}-deployment-byref-${opt:stage, self:provider.stage}
     SLACK_WEBHOOK_URL: ${env:SLACK_WEBHOOK_URL}
     SLACK_CHANNEL: ${env:SLACK_CHANNEL}
     SLACK_SIGNING_SECRET: ${env:SLACK_SIGNING_SECRET}
@@ -33,7 +34,7 @@ provider:
       Resource:
         - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_PROJECT}"
         - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_USER}"
-        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_BUILD}"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}"
     - Effect: Allow
       Action:
         - lambda:InvokeFunction
@@ -110,20 +111,37 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
         TableName: ${self:provider.environment.DYNAMODB_TABLE_USER}
-    buildDynamoDbTable:
+    deploymentDynamoDbTable:
       Type: "AWS::DynamoDB::Table"
       DeletionPolicy: Retain
       Properties:
         AttributeDefinitions:
+          - AttributeName: repository
+            AttributeType: S
           - AttributeName: id
             AttributeType: S
+          - AttributeName: ref
+            AttributeType: S
         KeySchema:
-          - AttributeName: id
+          - AttributeName: repository
             KeyType: HASH
+          - AttributeName: id
+            KeyType: RANGE
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_TABLE_BUILD}
+        TableName: ${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}
+        GlobalSecondaryIndexes:
+          - IndexName: ${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT_BYREF}
+            KeySchema:
+              - AttributeName: repository
+                KeyType: HASH
+              - AttributeName: ref
+                KeyType: RANGE
+            Projection:
+              NonKeyAttributes:
+                - pr
+              ProjectionType: INCLUDE
 
 plugins:
   - serverless-python-requirements
