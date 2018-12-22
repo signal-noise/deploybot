@@ -30,14 +30,12 @@ In a slack channel, typing `/cimon setup <username>/<repository>` will start the
 
 ## Installation
 
-Set up an AWS account
+Set up an AWS account, following the [Serverless documentation](https://serverless.com/framework/docs/providers/aws/guide/credentials/). Get the Access Key and Secret, and save them to your `~.aws/credentials` file under the `deploybot` profile if you intend to deploy manually (recommended). Deploy so that you have live endpoints.
 
-Set up a GH app
+Set up a GitHub app for your organisation; navigate to your organisation settings, go to GitHub Apps and create a new one. Fill in the Name, Description and Homepage fields, then add the endpoint for your `github_event` function to the Webhook URL field. You then need to install it; ideally to all repositories. You'll need to get the App's `ID` and `Private Key` as well as its `Installation ID`.
 
 Set up Slack app
 
-Get AWS Key and Secret
-Get GH App PK and ID
 Get Slack App signing secret, webhook url, team ID
 Get CircleCI API token
 
