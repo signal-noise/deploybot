@@ -6,9 +6,9 @@ This project exists in order to allow easy workflow support between Slack, GitHu
 
 ## Functionality
 
-In essence, the bot triggers deployments using CircleCI, synchronising all data with GitHub, and communicating with users on Slack.
+In essence, the app subscribes to GitHub events, which it uses to trigger GitHub deployments at moments that support the given workflow. The Deployment events then trigger jobs to run on CircleCI with all status information returning to GitHub.
 
-Each Slack channel it is configured on will relate to a single GitHub repository. Based on trigger events, it will create a GitHub `deployment`, derive the workflow-specific information like environment, then trigger a CircleCI build related to that deployment.
+Each Slack channel it is configured on will relate to a single GitHub repository. All GitHub events relating to the workflow are posted to Slack intelligently, with updates to existing messages and message interactivity where appropriate, and of course with the relevant users @ mentioned.
 
 Triggers can also be manually activated via the Slack channel; anyone on the channel has permission to run any command.
 
@@ -17,7 +17,7 @@ Triggers can also be manually activated via the Slack channel; anyone on the cha
 As this project is in very early days, the workflow is pretty hardcoded right now. It's based on [GitHub Flow](https://guides.github.com/introduction/flow/), with a couple of extra items; this is all the moments a deployment is triggered:
 * As soon as a PR is created the `headRef` of that PR is built, and the build is linked in a comment on the PR
 * Each subsequent push to a branch with an open PR triggers a rebuild of that `PR` environment
-* Each push to `master` (usually a merge froma PR) triggers a build of the `Preview` environment
+* Each push to `master` (usually a merge from a PR) triggers a build of the `Preview` environment
 * Each push to any branch with a name starting with `release` (e.g. `release/v1.3`) triggers a build to the `test` environment
 * Manual triggers from Slack can trigger builds to `staging` of anything that's already been built to `test`
 * Pushing tags with names starting with a `v` (e.g. `v1.3`) will trigger a build to the `production` environment
@@ -82,6 +82,7 @@ The GitHub connectors are slightly more varied.
 
 - `webhook` receives all events from a repository and therefore has an HTTP endpoint.
 - `collaborators` takes a repository as input, queries the GH GraphQL API and returns just the usernames of the people with access to that repo. This is not configured for HTTP access, and is only meant to be called by other Lambda functions.
+- `deployment` creates and updated GH Deployments and keeps the relevant DynamoDB table in sync. It is only meant to be called by other Lambda functions.
 
 ### CircleCI
 
@@ -99,19 +100,21 @@ This saves the `slack_channelid` against the `repository` (in the format `github
 
 This simple table saves the `slack_userid` against the `github_username`, to allow _@_ notifications from GitHub events in Slack. Again, it also stores `slack_username` for ease of use.
 
-### Build
+### Deployment
 
 The core of the app revolves around this. Each GitHub `deployment` corresponds to a single item in this table. Each item in this table can have all the following attributes:
 
-- Repository
-- Commit hash
-- Branch / tag / PR ref
-- Committer
-- Environment
+- `repository`
+- `id` (GH deployment ID)
+- `ref`
+- `commit_author_github_login`
+- `commit_sha`
+- `trigger`
+- `pr` (PR number)
+- `environment`
 - Build number
 - Build URL
 - Deploy URL
 - Deploy datetime
 - Slack Message ID
 - Ticket reference (Asana or gh ticket)
-- Trigger (if needed over other attributes)
