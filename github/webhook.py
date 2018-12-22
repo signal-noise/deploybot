@@ -43,23 +43,20 @@ def push(data=None):
 
     if data['ref'] == 'refs/heads/master':
         env = 'preview'
-    elif data['ref'][:13] == 'refs/heads/release':
+    elif data['ref'][:18] == 'refs/heads/release':
         env = 'test'
     elif data['ref'][:11] == 'refs/tags/v':
         env = 'production'
     else:
         # if ref is headref of an open PR
         table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
-        result = table.get_item(
+        result = table.query(
             IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYREF'],
-            Key={
-                'repository': data['repository']['full_name'],
-                'ref': data['ref']
-            }
+            KeyConditionExpression=Key('repository').eq(data['repository']['full_name']) & Key('ref').eq(data['ref'])
         )
         logging.info('~~GET REF~~')
         logging.info(result)
-    #    env = 'pr'
+        env = 'pr'
 
     if env is not None:
         trigger_deployment({
