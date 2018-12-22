@@ -28,6 +28,7 @@ def receive(event, context):
     # channel = os.environ['SLACK_CHANNEL']
     # payload = {
     #     "text": data['text'],
+    # bah!
     #     "channel": channel,
     # }
 
