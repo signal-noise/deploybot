@@ -4,6 +4,7 @@ import os
 import sys
 
 import boto3
+from boto3.dynamodb.conditions import Key
 
 from botocore.vendored import requests
 
@@ -21,8 +22,9 @@ def pull_request(data=None):
     Processes PR actions
     """
     action = data['action']
+    logging.info('PR action is {}'.format(data['action']))
     if action == 'opened':
-        logging.info('create deployment for PR %s' % data['number'])
+        logging.info('create deployment for PR {}'.format(data['number']))
         trigger_deployment({
             'repository': data['repository']['full_name'], 
             'environment': 'pr', 
