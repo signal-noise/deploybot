@@ -74,74 +74,74 @@ functions:
     handler: slack/message.send
 
 resources:
-  Resources:
-    projectDynamoDbTable:
-      Type: "AWS::DynamoDB::Table"
-      DeletionPolicy: Retain
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: repository
-            AttributeType: S
-          - AttributeName: slack_channelid
-            AttributeType: S
-        KeySchema:
-          - AttributeName: repository
-            KeyType: HASH
-          - AttributeName: slack_channelid
-            KeyType: RANGE
-        ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_TABLE_PROJECT}
-    userDynamoDbTable:
-      Type: "AWS::DynamoDB::Table"
-      DeletionPolicy: Retain
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: github_username
-            AttributeType: S
-          - AttributeName: slack_userid
-            AttributeType: S
-        KeySchema:
-          - AttributeName: github_username
-            KeyType: HASH
-          - AttributeName: slack_userid
-            KeyType: RANGE
-        ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_TABLE_USER}
-    deploymentDynamoDbTable:
-      Type: "AWS::DynamoDB::Table"
-      DeletionPolicy: Retain
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: repository
-            AttributeType: S
-          - AttributeName: id
-            AttributeType: S
-          - AttributeName: ref
-            AttributeType: S
-        KeySchema:
-          - AttributeName: repository
-            KeyType: HASH
-          - AttributeName: id
-            KeyType: RANGE
-        ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}
-        GlobalSecondaryIndexes:
-          - IndexName: ${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT_BYREF}
-            KeySchema:
-              - AttributeName: repository
-                KeyType: HASH
-              - AttributeName: ref
-                KeyType: RANGE
-            Projection:
-              NonKeyAttributes:
-                - pr
-              ProjectionType: INCLUDE
+  # Resources:
+  #   projectDynamoDbTable:
+  #     Type: "AWS::DynamoDB::Table"
+  #     DeletionPolicy: Retain
+  #     Properties:
+  #       AttributeDefinitions:
+  #         - AttributeName: repository
+  #           AttributeType: S
+  #         - AttributeName: slack_channelid
+  #           AttributeType: S
+  #       KeySchema:
+  #         - AttributeName: repository
+  #           KeyType: HASH
+  #         - AttributeName: slack_channelid
+  #           KeyType: RANGE
+  #       ProvisionedThroughput:
+  #         ReadCapacityUnits: 1
+  #         WriteCapacityUnits: 1
+  #       TableName: ${self:provider.environment.DYNAMODB_TABLE_PROJECT}
+  #   userDynamoDbTable:
+  #     Type: "AWS::DynamoDB::Table"
+  #     DeletionPolicy: Retain
+  #     Properties:
+  #       AttributeDefinitions:
+  #         - AttributeName: github_username
+  #           AttributeType: S
+  #         - AttributeName: slack_userid
+  #           AttributeType: S
+  #       KeySchema:
+  #         - AttributeName: github_username
+  #           KeyType: HASH
+  #         - AttributeName: slack_userid
+  #           KeyType: RANGE
+  #       ProvisionedThroughput:
+  #         ReadCapacityUnits: 1
+  #         WriteCapacityUnits: 1
+  #       TableName: ${self:provider.environment.DYNAMODB_TABLE_USER}
+  #   deploymentDynamoDbTable:
+  #     Type: "AWS::DynamoDB::Table"
+  #     DeletionPolicy: Retain
+  #     Properties:
+  #       AttributeDefinitions:
+  #         - AttributeName: repository
+  #           AttributeType: S
+  #         - AttributeName: id
+  #           AttributeType: S
+  #         # - AttributeName: ref
+  #         #   AttributeType: S
+  #       KeySchema:
+  #         - AttributeName: repository
+  #           KeyType: HASH
+  #         - AttributeName: id
+  #           KeyType: RANGE
+  #       ProvisionedThroughput:
+  #         ReadCapacityUnits: 1
+  #         WriteCapacityUnits: 1
+  #       TableName: ${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}
+  #       # GlobalSecondaryIndexes:
+  #       #   - IndexName: ${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT_BYREF}
+  #       #     KeySchema:
+  #       #       - AttributeName: repository
+  #       #         KeyType: HASH
+  #       #       - AttributeName: ref
+  #       #         KeyType: RANGE
+  #       #     Projection:
+  #       #       NonKeyAttributes:
+  #       #         - pr
+  #       #       ProjectionType: INCLUDE
 
 plugins:
   - serverless-python-requirements
