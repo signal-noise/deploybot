@@ -138,6 +138,16 @@ def createDeployment(repoId, refId, env, description=None, url=None):
     """
     Executes an API call based around the createdeployment mutation. 
     """
+    # @TODO query the table to check we dont already have a deployment for this commit
+    # weill require new GSI
+        # table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
+        # result = table.query(
+        #     IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_...'],
+        #     KeyConditionExpression=Key('repository').eq(data['repository']['full_name']) & Key('ref').eq(data['ref'])
+        # )
+        # logging.info('~~GET REF~~')
+        # logging.info(result)
+
     if description is None:
         description = "Automatically created by SN Deploybot"
     headers = {
@@ -157,7 +167,10 @@ def createDeployment(repoId, refId, env, description=None, url=None):
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
     json_data = r.json()
     logging.info(json_data)
-    return json_data['data']['createDeployment']['deployment']['id']
+    if json_data['data']['createDeployment']['deployment'] is not None:
+        return (True, json_data['data']['createDeployment']['deployment']['id'])
+    else:
+        return (False, json_data['errors'][0]['message'])
 
 
 def create(event, context):
@@ -248,14 +261,19 @@ def create(event, context):
     item['repo_github_id'] = ids['repoId']
     item['ref_github_id'] = ids['refId']
 
-    item['id'] = createDeployment(ids['repoId'], ids['refId'], env)
+    success, item['id'] = createDeployment(ids['repoId'], ids['refId'], env)
 
-    logging.info("item = {%s}" % ', '.join("%s: %r" % (key,val) for (key,val) in item.iteritems()))
-    table.put_item(Item=item)
+    if success is True:
+        logging.info("item = {%s}" % ', '.join("%s: %r" % (key,val) for (key,val) in item.iteritems()))
+        table.put_item(Item=item)
 
-    response_data = {
-        "deployment_id": item['id']
-    }
+        response_data = {
+            "deployment_id": item['id']
+        }
+    else:
+        response_data = {
+            "error_message": item['id']
+        }
     if http_request:
         response = {
             "statusCode": r.status_code,

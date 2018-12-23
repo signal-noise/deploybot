@@ -76,6 +76,13 @@ def push(data=None):
     return
 
 
+def status(data=None):
+    """
+    Processes Status update actions - only after these should we create deployments
+    """
+    logging.info(data)
+
+
 def is_request_valid(event):
     """
     Validates using Webhook Secret approach:
