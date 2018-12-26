@@ -120,7 +120,6 @@ def get_create_deployment_mutation(mutation_vars):
     t = Template(mutation)
     return {'query': t.substitute(mutation_vars)}
 
-
 #
 #
 # GitHub query functions
