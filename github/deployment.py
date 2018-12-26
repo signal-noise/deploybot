@@ -174,9 +174,9 @@ def create(event, context):
     ref (or number if environment is PR)
     commit_sha
     """
-    logging.debug(data)
     http_request = False
     data = event
+    logging.debug(data)
     if 'body' in data:
         http_request = True
         data = json.loads(event['body'])
@@ -202,12 +202,6 @@ def create(event, context):
         logging.error("no commit SHA")
         raise Exception("Couldn't trigger the deployment.")
         return
-
-    # What kind of deployment is this?
-    # PR (number)
-    # Preview (master branch commit)
-    # Staging / Test (release branch commit, different triggers)
-    # Production (tag)
 
     env = data['environment'].lower()
     if env not in ('pr', 'preview', 'test', 'staging', 'production'):
