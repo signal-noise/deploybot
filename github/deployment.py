@@ -83,12 +83,11 @@ def get_create_deployment_mutation(mutation_vars):
     description :required 
     url :required 
     """
-    prNumber = None
-    url = None
+    payload = {}
     if 'prNumber' in mutation_vars and mutation_vars['prNumber'] is not None:
-        prNumber = mutation_vars['prNumber']
+        payload['prNumber'] = mutation_vars.pop('prNumber')
     if 'url' in mutation_vars and mutation_vars['url'] is not None:
-        url = mutation_vars['url']
+        payload['url'] = mutation_vars.pop('url')
     mutation = """ 
         mutation { 
             createDeployment( 
@@ -97,26 +96,13 @@ def get_create_deployment_mutation(mutation_vars):
                     refId: "$refId",  
                     environment: "$environment",   
                     description: "$description", 
-                    autoMerge: false,
+                    autoMerge: false
     """
-    if url is not None or prNumber is not None:
-        mutation += """
-                    payload: {
+    if payload != {}:
+        mutation += """,
+                    payload: "$payload"
         """
-    if prNumber is not None:
-        mutation += """
-                        number: "$prNumber"
-        """
-    if url is not None:
-        if prNumber is not None:
-            mutation += ","
-        mutation += """
-                        url: "$url"
-        """
-    if url is not None or prNumber is not None:
-        mutation += """
-                    }  
-        """
+        mutation_vars['payload'] = json.dumps(payload)
     mutation += """ 
                 } 
             ) {  
