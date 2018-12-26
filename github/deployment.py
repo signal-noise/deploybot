@@ -117,7 +117,7 @@ def get_create_deployment_mutation(mutation_vars):
         mutation += """
                     }  
         """
-    mutation = """ 
+    mutation += """ 
                 } 
             ) {  
                 deployment {
@@ -191,7 +191,6 @@ def create_deployment(repoId, refId, env, description=None, prNumber=None, url=N
         'url': url
     })
 
-    logging.info(payload)
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
     json_data = r.json()
     logging.info(json_data)
