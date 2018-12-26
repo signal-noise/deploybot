@@ -6,6 +6,7 @@ import time
 from string import Template
 
 import boto3
+from boto3.dynamodb.conditions import Key
 import jwt
 from botocore.vendored import requests
 

@@ -82,8 +82,7 @@ def status(data=None):
     """
     state = data['state']
     if state != 'pending':
-        logging.info(data)
-
+        logging.info('state is {}'.format(state))
         table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
         result = table.query(
             IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT'],
@@ -104,6 +103,7 @@ def status(data=None):
                 })
                 return
             else:
+                logging.info('deleting item from table')
                 table.delete_item(Key={
                     'repository': dep['repository'],
                     'id': dep['id']
