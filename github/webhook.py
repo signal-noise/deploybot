@@ -88,7 +88,7 @@ def status(data=None):
             IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT'],
             KeyConditionExpression=Key('repository').eq(data['repository']['full_name']) & Key('commit').eq(data['commit']['sha'])
         )
-        logging.debug('looking for pending deployment with {} and {}'.format(data['repository']['full_name'], data['commit']['sha']))
+        logging.info('looking for pending deployment with {} and {}'.format(data['repository']['full_name'], data['commit']['sha']))
         if result['Count'] > 0:
             dep = result['Items'][0]
             logging.info(dep)

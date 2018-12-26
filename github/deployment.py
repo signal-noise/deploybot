@@ -176,7 +176,7 @@ def create(event, context):
     """
     http_request = False
     data = event
-    logging.debug(data)
+    logging.info(data)
     if 'body' in data:
         http_request = True
         data = json.loads(event['body'])
