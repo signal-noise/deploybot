@@ -172,7 +172,9 @@ def create(event, context):
     repository (e.g. signal-noise/deploybot)
     environment
     ref (or number if environment is PR)
+    commit_sha
     """
+    logging.debug(data)
     http_request = False
     data = event
     if 'body' in data:
@@ -232,6 +234,8 @@ def create(event, context):
     else:
         args['refName'] = data['ref']
     ids = getGitHubIds(**args)
+    if env == 'pr':
+        ids['refId'] = ids['prHeadRefId']
 
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
     timestamp = int(time.mktime(datetime.now().timetuple()))
@@ -239,10 +243,9 @@ def create(event, context):
     # check if we already have an entry for this one, i.e. may be a retry
     result = table.query(
         IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT'],
-        KeyConditionExpression=Key('repository').eq(data['repository']['full_name']) & Key('commit').eq(data['commit_sha'])
+        KeyConditionExpression=Key('repository').eq(data['repository']) & Key('commit').eq(data['commit_sha'])
     )
-    logging.info('~~GET REF~~')
-    logging.info(result)
+    logging.info('found existing record in table: {}'.format(result))
     if result['Count'] > 0:
         item = result['Items'][0]
         item['updatedAt'] = timestamp
@@ -251,6 +254,8 @@ def create(event, context):
             'repository': data['repository'],
             'environment': env,
             'commit_sha': data['commit_sha'],
+            'repo_github_id': ids['repoId'],
+            'ref_github_id': ids['refId'],
             'createdAt': timestamp,
             'updatedAt': timestamp,
         }
@@ -262,11 +267,6 @@ def create(event, context):
             item['commit_author_github_login'] = data['commit_author']
         if env == 'pr':
             item['pr'] = data['number']
-
-    if env == 'pr':
-        ids['refId'] = ids['prHeadRefId']
-    item['repo_github_id'] = ids['repoId']
-    item['ref_github_id'] = ids['refId']
 
     success, item['id'] = createDeployment(ids['repoId'], ids['refId'], env)
 
