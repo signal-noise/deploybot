@@ -83,6 +83,12 @@ def get_create_deployment_mutation(mutation_vars):
     description :required 
     url :required 
     """
+    prNumber = None
+    url = None
+    if 'prNumber' in mutation_vars and mutation_vars['prNumber'] is not None:
+        prNumber = mutation_vars['prNumber']
+    if 'url' in mutation_vars and mutation_vars['url'] is not None:
+        url = mutation_vars['url']
     mutation = """ 
         mutation { 
             createDeployment( 
@@ -92,18 +98,26 @@ def get_create_deployment_mutation(mutation_vars):
                     environment: "$environment",   
                     description: "$description", 
                     autoMerge: false,
-                    payload: {
     """
-    if 'prNumber' in mutation_vars and mutation_vars['prNumber'] is not None:
+    if url is not None or prNumber is not None:
+        mutation += """
+                    payload: {
+        """
+    if prNumber is not None:
         mutation += """
                         number: "$prNumber"
         """
-    if 'url' in mutation_vars and mutation_vars['url'] is not None:
+    if url is not None:
+        if prNumber is not None:
+            mutation += ","
         mutation += """
                         url: "$url"
         """
-    mutation = """ 
+    if url is not None or prNumber is not None:
+        mutation += """
                     }  
+        """
+    mutation = """ 
                 } 
             ) {  
                 deployment {
