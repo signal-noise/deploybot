@@ -239,8 +239,8 @@ def create(event, context):
         IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT'],
         KeyConditionExpression=Key('repository').eq(data['repository']) & Key('commit').eq(data['commit_sha'])
     )
-    logging.info('found existing record in table: {}'.format(result))
     if result['Count'] > 0:
+        logging.info('found existing record in table: {}'.format(result))
         item = result['Items'][0]
         item['updatedAt'] = timestamp
     else:
@@ -274,7 +274,7 @@ def create(event, context):
         if 'status checks failed' in item['id']:
             # deployment failed because of incomplete status checks
             item['status'] = 'pending'
-            item['id'] = timestamp
+            item['id'] = str(timestamp)
         response_data = {
             "error_message": error_message
         }
