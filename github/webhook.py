@@ -204,3 +204,4 @@ def trigger_deployment(payload):
     parsed_response = json.loads(string_response)
     logging.info(parsed_response)
     return parsed_response
+    
