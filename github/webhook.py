@@ -106,7 +106,7 @@ def status(data=None):
                     'commit_sha': dep['commit_sha']
                 }
                 if dep['environment'] == 'pr':
-                    record['number'] = dep['pr']
+                    record['number'] = int(dep['pr'])
                 trigger_deployment(record)
                 return
             else:
