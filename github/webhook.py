@@ -1,7 +1,9 @@
+from datetime import datetime, timedelta
 import json
 import logging
 import os
 import sys
+import time
 
 import boto3
 from boto3.dynamodb.conditions import Key
@@ -18,6 +20,13 @@ if logger.handlers:
 logging.basicConfig(level=logging.INFO)
 
 
+#
+#
+# Event-specific handlers
+#
+#
+
+
 def pull_request(data=None):
     """
     Processes PR actions
@@ -26,7 +35,7 @@ def pull_request(data=None):
     logging.info('PR action is {}'.format(data['action']))
     if action == 'opened':
         logging.info('create deployment for PR {}'.format(data['number']))
-        trigger_deployment({
+        trigger_github_deployment_create({
             'repository': data['repository']['full_name'],
             'environment': 'pr',
             'number': data['pull_request']['number'],
@@ -38,7 +47,7 @@ def pull_request(data=None):
     elif action == 'synchronize':
         logging.info(
             'create deployment for new push to PR {}'.format(data['number']))
-        trigger_deployment({
+        trigger_github_deployment_create({
             'repository': data['repository']['full_name'],
             'environment': 'pr',
             'number': data['pull_request']['number'],
@@ -66,7 +75,7 @@ def push(data=None):
         env = 'production'
 
     if env is not None:
-        trigger_deployment({
+        trigger_github_deployment_create({
             'repository': data['repository']['full_name'],
             'environment': env,
             'ref': data['ref'],
@@ -79,7 +88,7 @@ def push(data=None):
 
 def status(data=None):
     """
-    Processes Status update actions - only after these should we create deployments
+    Processes Status update actions - often after these we retry deployments
     """
     state = data['state']
     if state != 'pending':
@@ -107,7 +116,7 @@ def status(data=None):
                 }
                 if dep['environment'] == 'pr':
                     record['number'] = int(dep['pr'])
-                trigger_deployment(record)
+                trigger_github_deployment_create(record)
                 return
             else:
                 logging.info('deleting item from table')
@@ -116,6 +125,68 @@ def status(data=None):
                     'id': dep['id']
                 })
                 return
+
+
+def deployment(data=None):
+    """
+    Process Deployment events
+    """
+    logging.info(data)
+
+
+#
+#
+# Shared GitHub functionality
+#
+#
+
+
+def create_circleci_deployment(repository, environment, ref, commit_sha, number=None):
+    """
+    Creates all required params and triggers function
+    """
+    payload = {
+        'repository': repository,
+        'environment': environment,
+        'version': '{}-{}'.format(environment, commit_sha),
+    }
+    if environment == 'production':
+        payload['tag'] = ref[10:]  # 'refs/tags/XXXX'
+        payload['version'] = ref[11:]  # 'refs/tags/vXXXX'
+    else:
+        payload['revision'] = commit_sha
+        if environment == 'pr':
+            payload['subdomain'] = 'pr{}'.format(number)
+        else:
+            payload['subdomain'] = environment
+
+    logging.info('calling cci trigger with {}'.format(payload))
+    response = trigger_circleci_trigger(payload)
+
+    # write details to DB
+    table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
+    result = table.query(
+        IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT'],
+        KeyConditionExpression=Key('repository').eq(
+            repository) & Key('commit_sha').eq(commit_sha)
+    )
+    if result['Count'] > 0:
+        logging.info('found existing record in table: {}'.format(result))
+        item = result['Items'][0]
+        item['updatedAt'] = int(time.mktime(datetime.now().timetuple()))
+
+        table.update(
+            Key={
+                'repository': repository,
+                'id': item['id']
+            },
+            UpdateExpression="set deployment_url = :u, build_number = :b",
+            ExpressionAttributeValues={
+                ':u': response['build_url'],
+                ':b': response['build_num']
+            },
+            ReturnValues="UPDATED_NEW"
+        )
 
 
 def is_request_valid(event):
@@ -131,6 +202,13 @@ def is_request_valid(event):
 
     # @ToDO implement logic
     return False
+
+
+#
+#
+# Response logic
+#
+#
 
 
 def receive(event, context):
@@ -150,7 +228,7 @@ def receive(event, context):
     headers = event['headers']
 
     event_type = headers['X-GitHub-Event']
-    repository = data['repository']['full_name']
+    repository = data['repository']['full_name'] if 'repository' in data else None
     slack_channel = None
     # event_id = headers['X-GitHub-Delivery']
 
@@ -197,12 +275,29 @@ def call_function(event_type, data):
         return
 
 
-def trigger_deployment(payload):
+def trigger_github_deployment_create(payload):
     """
     Trigger the function that creates the GH deployment with the given payload
     """
     response = lambda_client.invoke(
         FunctionName="{}-github_deployment_create".format(
+            os.environ['FUNCTION_PREFIX']),
+        InvocationType='RequestResponse',
+        Payload=json.dumps(payload)
+    )
+
+    string_response = response["Payload"].read().decode('utf-8')
+    parsed_response = json.loads(string_response)
+    logging.info(parsed_response)
+    return parsed_response
+
+
+def trigger_circleci_trigger(payload):
+    """
+    Trigger the function that triggers a CircleCI deployment with the given payload
+    """
+    response = lambda_client.invoke(
+        FunctionName="{}-circleci_trigger".format(
             os.environ['FUNCTION_PREFIX']),
         InvocationType='RequestResponse',
         Payload=json.dumps(payload)

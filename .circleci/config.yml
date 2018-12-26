@@ -7,6 +7,11 @@ jobs:
     working_directory: ~/project
     steps:
       - run: "circleci step halt" # we can't deploy from CI at the moment :/
+
+  build:
+    docker:
+      - image: signalnoise/base:10.13
+    steps:
       - checkout
       - run:
           name: Install Dependencies
@@ -48,14 +53,7 @@ jobs:
           command: ./node_modules/.bin/serverless deploy --verbose
       - run:
           name: Notify
-          command: ./.circleci/notify.sh
-
-  build:
-    docker:
-      - image: signalnoise/base:10.13
-    steps:
-      - checkout
-      - run: ./.circleci/test.sh
+          command: echo 'To Do'
 
 workflows:
   version: 2

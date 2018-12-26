@@ -7,7 +7,7 @@ import time
 import jwt
 from botocore.vendored import requests
 
-CIRCLECI_API_URI="https://circleci.com/api/v1.1"
+CIRCLECI_API_URI = "https://circleci.com/api/v1.1"
 
 logger = logging.getLogger()
 if logger.handlers:
@@ -24,39 +24,54 @@ def send(event, context):
         data = json.loads(event['body'])
 
     if 'repository' not in data:
-        logging.error("Validation Failed")
+        logging.error("No 'repository' supplied")
         raise Exception("Couldn't trigger a build.")
         return
 
     try:
         (username, repository) = data['repository'].split('/')
     except ValueError as e:
-        logging.error("Validation Failed")
+        logging.error("Repository name not in right format)
         raise Exception("Couldn't trigger a build.")
 
     if 'revision' not in data and 'tag' not in data:
-        logging.error("Validation Failed")
+        logging.error("Neither 'revision' nor 'tag' supplied")
         raise Exception("Couldn't trigger a build.")
         return
 
-    headers = { 'Content-Type': 'application/json' }
-    uri = '%s/project/github/%s/%s?circle-token=%s' % (CIRCLECI_API_URI, username, repository, os.environ['CIRCLECI_API_TOKEN'])
+    if 'environment' not in data:
+        logging.error("No 'environment' supplied")
+        raise Exception("Couldn't trigger a build.")
+        return
+
+    if 'version' not in data:
+        logging.error("No 'version' supplied")
+        raise Exception("Couldn't trigger a build.")
+        return
+
+    headers = {'Content-Type': 'application/json'}
+    uri = '%s/project/github/%s/%s?circle-token=%s' % (
+        CIRCLECI_API_URI, username, repository, os.environ['CIRCLECI_API_TOKEN'])
     payload = {
-        "revision": data['revision'],
         "build_parameters": {
-            'ENVIRONMENT': 'test',
-            'VERSION': '',
-            'SUBDOMAIN': '',
+            'ENVIRONMENT': data['environment'],
+            'VERSION': data['version']
         }
     }
+    if 'revision' in data:
+        payload["revision"] = data['revision']
+    else:
+        payload['tag'] = data['tag']
+    if 'subdomain' in data:
+        payload["build_parameters"]["subdomain"] = data['subdomain']
 
+    # https://circleci.com/docs/api/#trigger-a-new-job
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
     json_data = r.json()
     # logging.info(json_data)
     response_data = {
         "build_url": json_data['build_url'],
-        "build_num": json_data['build_num'],
-        "github_username": json_data['committer_name']
+        "build_num": json_data['build_num']
     }
 
     if http_request:
@@ -77,7 +92,7 @@ def response(body=None, status=200):
     response = {
         "statusCode": int(status),
         "isBase64Encoded": False,
-        "headers": { 
+        "headers": {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
         },
@@ -88,4 +103,5 @@ def response(body=None, status=200):
 
 
 if __name__ == "__main__":
-    send({'repository': 'signal-noise/deploybot', 'revision': '6366aefd6dfa0891f89417edf88844667e5f2d55', 'environment': 'test'}, '')
+    send({'repository': 'signal-noise/deploybot',
+          'revision': '6366aefd6dfa0891f89417edf88844667e5f2d55', 'environment': 'test'}, '')

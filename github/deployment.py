@@ -22,6 +22,13 @@ if logger.handlers:
 logging.basicConfig(level=logging.INFO)
 
 
+#
+#
+# GitHub GraphQL query generation functions
+#
+#
+
+
 def getRepoQuery(query_vars):
     """
     Builds a GraphQL query to get repo info including refs and 
@@ -105,7 +112,14 @@ def getCreateDeploymentMutation(mutation_vars):
     return { 'query': t.substitute(mutation_vars) }
 
 
-def getGitHubIds(**args):
+#
+#
+# GitHub query functions
+#
+#
+
+
+def get_github_ids(**args):
     """
     Executes an API call based around the repo info query, to return NodeIDs 
     of relevant Github objects. 
@@ -135,7 +149,7 @@ def getGitHubIds(**args):
     return ids
 
 
-def createDeployment(repoId, refId, env, description=None, url=None):
+def create_deployment(repoId, refId, env, description=None, url=None):
     """
     Executes an API call based around the createdeployment mutation. 
     """
@@ -162,6 +176,32 @@ def createDeployment(repoId, refId, env, description=None, url=None):
         return (True, json_data['data']['createDeployment']['deployment']['id'])
     else:
         return (False, json_data['errors'][0]['message'])
+
+
+def get_installation_token():
+    jwt = generate_jwt()
+
+    headers = {
+        'Accept': 'application/vnd.github.machine-man-preview+json',
+        'Authorization': 'Bearer {}'.format(jwt) 
+    }
+    uri = 'https://api.github.com/app/installations/{}/access_tokens'.format(os.environ['GITHUB_APP_INSTALLATIONID'])
+
+    r = requests.post(uri, headers=headers)
+    json_data = r.json()
+ 
+    return json_data['token']
+
+
+if __name__ == "__main__":
+    create({'repository': 'signal-noise/deploybot', 'environment': 'pr', 'number': 13}, '')
+
+
+#
+#
+# Response logic
+#
+#
 
 
 def create(event, context):
@@ -227,7 +267,7 @@ def create(event, context):
         args['prNumber'] = data['number']
     else:
         args['refName'] = data['ref']
-    ids = getGitHubIds(**args)
+    ids = get_github_ids(**args)
     if env == 'pr':
         ids['refId'] = ids['prHeadRefId']
 
@@ -262,7 +302,7 @@ def create(event, context):
         if env == 'pr':
             item['pr'] = data['number']
 
-    success, item['id'] = createDeployment(ids['repoId'], ids['refId'], env)
+    success, item['id'] = create_deployment(ids['repoId'], ids['refId'], env)
 
     if success is True:
         item['status'] = 'complete'
@@ -326,22 +366,3 @@ def generate_jwt():
         algorithm='RS256')
 
     return token.decode('utf-8')
-
-
-def get_installation_token():
-    jwt = generate_jwt()
-
-    headers = {
-        'Accept': 'application/vnd.github.machine-man-preview+json',
-        'Authorization': 'Bearer {}'.format(jwt) 
-    }
-    uri = 'https://api.github.com/app/installations/{}/access_tokens'.format(os.environ['GITHUB_APP_INSTALLATIONID'])
-
-    r = requests.post(uri, headers=headers)
-    json_data = r.json()
- 
-    return json_data['token']
-
-
-if __name__ == "__main__":
-    create({'repository': 'signal-noise/deploybot', 'environment': 'pr', 'number': 13}, '')
