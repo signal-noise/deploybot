@@ -102,7 +102,9 @@ def get_create_deployment_mutation(mutation_vars):
         mutation += """,
                     payload: "$payload"
         """
-        mutation_vars['payload'] = json.dumps(payload).replace('"', '\"')
+        payload_str = "{}".format(json.dumps(payload).replace('"', '\"'))
+        logging.info(payload_str)
+        mutation_vars['payload'] = payload_str
     mutation += """ 
                 } 
             ) {  
