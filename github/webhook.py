@@ -27,8 +27,8 @@ def pull_request(data=None):
     if action == 'opened':
         logging.info('create deployment for PR {}'.format(data['number']))
         trigger_deployment({
-            'repository': data['repository']['full_name'], 
-            'environment': 'pr', 
+            'repository': data['repository']['full_name'],
+            'environment': 'pr',
             'number': data['pull_request']['number'],
             'ref': "refs/heads/{}".format(data['pull_request']['head']['ref']),
             'trigger': 'gh_event',
@@ -36,10 +36,11 @@ def pull_request(data=None):
             'commit_sha': data['pull_request']['head']['sha']
         })
     elif action == 'synchronize':
-        logging.info('create deployment for new push to PR {}'.format(data['number']))
+        logging.info(
+            'create deployment for new push to PR {}'.format(data['number']))
         trigger_deployment({
-            'repository': data['repository']['full_name'], 
-            'environment': 'pr', 
+            'repository': data['repository']['full_name'],
+            'environment': 'pr',
             'number': data['pull_request']['number'],
             'ref': "refs/heads/{}".format(data['pull_request']['head']['ref']),
             'trigger': 'gh_event',
@@ -66,8 +67,8 @@ def push(data=None):
 
     if env is not None:
         trigger_deployment({
-            'repository': data['repository']['full_name'], 
-            'environment': env, 
+            'repository': data['repository']['full_name'],
+            'environment': env,
             'ref': data['ref'],
             'trigger': 'gh_event',
             'commit_author': data['head_commit']['author']['username'],
@@ -86,22 +87,27 @@ def status(data=None):
         table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
         result = table.query(
             IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT'],
-            KeyConditionExpression=Key('repository').eq(data['repository']['full_name']) & Key('commit_sha').eq(data['commit']['sha'])
+            KeyConditionExpression=Key('repository').eq(
+                data['repository']['full_name']) & Key('commit_sha').eq(data['commit']['sha'])
         )
-        logging.info('looking for pending deployment with {} and {}'.format(data['repository']['full_name'], data['commit']['sha']))
+        logging.info('looking for pending deployment with {} and {}'.format(
+            data['repository']['full_name'], data['commit']['sha']))
         if result['Count'] > 0:
             dep = result['Items'][0]
-            logging.info('found '.format(dep))
+            logging.info('found {}'.format(dep))
 
             if state == 'success':
-                trigger_deployment({
-                    'repository': dep['repository'], 
-                    'environment': dep['environment'], 
+                record = {
+                    'repository': dep['repository'],
+                    'environment': dep['environment'],
                     'ref': dep['ref'],
                     'trigger': dep['trigger'],
                     'commit_author': dep['commit_author_github_login'],
                     'commit_sha': dep['commit_sha']
-                })
+                }
+                if dep['environment'] == 'pr':
+                    record['number'] = dep['pr']
+                trigger_deployment(record)
                 return
             else:
                 logging.info('deleting item from table')
@@ -122,7 +128,7 @@ def is_request_valid(event):
     else:
         # Secret not configured at GH
         return True
-    
+
     # @ToDO implement logic
     return False
 
@@ -157,7 +163,8 @@ def receive(event, context):
     if slack_channel is not None:
         return call_function(event_type, data)
     else:
-        logging.info("No action taken for event '%s' on repo '%s'" % (event_type, repository))
+        logging.info("No action taken for event '%s' on repo '%s'" %
+                     (event_type, repository))
         return
 
 
@@ -168,7 +175,7 @@ def response(body=None, status=200):
     response = {
         "statusCode": int(status),
         "isBase64Encoded": False,
-        "headers": { 
+        "headers": {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
         },
@@ -187,7 +194,7 @@ def call_function(event_type, data):
         return getattr(sys.modules[__name__], event_type)(data=data)
     except Exception as e:
         logging.error(e)
-        return 
+        return
 
 
 def trigger_deployment(payload):
@@ -195,7 +202,8 @@ def trigger_deployment(payload):
     Trigger the function that creates the GH deployment with the given payload
     """
     response = lambda_client.invoke(
-        FunctionName="{}-github_deployment_create".format(os.environ['FUNCTION_PREFIX']),
+        FunctionName="{}-github_deployment_create".format(
+            os.environ['FUNCTION_PREFIX']),
         InvocationType='RequestResponse',
         Payload=json.dumps(payload)
     )
