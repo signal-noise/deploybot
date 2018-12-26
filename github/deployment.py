@@ -12,7 +12,7 @@ from botocore.vendored import requests
 
 dynamodb = boto3.resource('dynamodb')
 
-GITHUB_GRAPHQL_URI="https://api.github.com/graphql"
+GITHUB_GRAPHQL_URI = "https://api.github.com/graphql"
 
 
 logger = logging.getLogger()
@@ -29,7 +29,7 @@ logging.basicConfig(level=logging.INFO)
 #
 
 
-def getRepoQuery(query_vars):
+def get_repo_query(query_vars):
     """
     Builds a GraphQL query to get repo info including refs and 
     PR details if provided. The single param is a dict with the 
@@ -39,7 +39,7 @@ def getRepoQuery(query_vars):
     refName
     prNumber
     """
-    query="""
+    query = """
         query {
             repository(owner:"$repoOwner", name:"$repoName") {
                 id,
@@ -70,10 +70,10 @@ def getRepoQuery(query_vars):
         }
     """
     t = Template(query)
-    return { 'query': t.substitute(query_vars) }
+    return {'query': t.substitute(query_vars)}
 
 
-def getCreateDeploymentMutation(mutation_vars):
+def get_create_deployment_mutation(mutation_vars):
     """
     Builds a GraphQL mutation to create a new deployment. The single param 
     is a dict with the following keys:
@@ -91,7 +91,19 @@ def getCreateDeploymentMutation(mutation_vars):
                     refId: "$refId",  
                     environment: "$environment",   
                     description: "$description", 
-                    autoMerge: false
+                    autoMerge: false,
+                    payload: {
+    """
+    if 'prNumber' in mutation_vars and mutation_vars['prNumber'] is not None:
+        mutation += """
+                        number: "$prNumber"
+        """
+    if 'url' in mutation_vars and mutation_vars['url'] is not None:
+        mutation += """
+                        url: "$url"
+        """
+    mutation = """ 
+                    }  
                 } 
             ) {  
                 deployment {
@@ -103,13 +115,8 @@ def getCreateDeploymentMutation(mutation_vars):
             } 
         }
     """
-                    # removed from input above: 
-                    # payload: {
-                    #     url: "$url"
-                    # }  
-                    # requiredContexts: [] 
     t = Template(mutation)
-    return { 'query': t.substitute(mutation_vars) }
+    return {'query': t.substitute(mutation_vars)}
 
 
 #
@@ -130,10 +137,10 @@ def get_github_ids(**args):
     """
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'bearer {}'.format(get_installation_token()) 
+        'Authorization': 'bearer {}'.format(get_installation_token())
     }
     uri = GITHUB_GRAPHQL_URI
-    payload = getRepoQuery(args)
+    payload = get_repo_query(args)
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
     json_data = r.json()
     ids = {
@@ -149,7 +156,7 @@ def get_github_ids(**args):
     return ids
 
 
-def create_deployment(repoId, refId, env, description=None, url=None):
+def create_deployment(repoId, refId, env, description=None, prNumber=None, url=None):
     """
     Executes an API call based around the createdeployment mutation. 
     """
@@ -158,15 +165,16 @@ def create_deployment(repoId, refId, env, description=None, url=None):
     headers = {
         'Accept': 'application/vnd.github.flash-preview+json',
         'Content-Type': 'application/json',
-        'Authorization': 'bearer {}'.format(get_installation_token()) 
+        'Authorization': 'bearer {}'.format(get_installation_token())
     }
     uri = GITHUB_GRAPHQL_URI
-    payload = getCreateDeploymentMutation({
-        'repoId': repoId, 
-        'refId': refId, 
-        'environment': env, 
+    payload = get_create_deployment_mutation({
+        'repoId': repoId,
+        'refId': refId,
+        'environment': env,
         'description': description,
-        # 'url': 'http://hello.com'
+        'prNumber': prNumber,
+        'url': url
     })
 
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
@@ -183,18 +191,20 @@ def get_installation_token():
 
     headers = {
         'Accept': 'application/vnd.github.machine-man-preview+json',
-        'Authorization': 'Bearer {}'.format(jwt) 
+        'Authorization': 'Bearer {}'.format(jwt)
     }
-    uri = 'https://api.github.com/app/installations/{}/access_tokens'.format(os.environ['GITHUB_APP_INSTALLATIONID'])
+    uri = 'https://api.github.com/app/installations/{}/access_tokens'.format(
+        os.environ['GITHUB_APP_INSTALLATIONID'])
 
     r = requests.post(uri, headers=headers)
     json_data = r.json()
- 
+
     return json_data['token']
 
 
 if __name__ == "__main__":
-    create({'repository': 'signal-noise/deploybot', 'environment': 'pr', 'number': 13}, '')
+    create({'repository': 'signal-noise/deploybot',
+            'environment': 'pr', 'number': 13}, '')
 
 
 #
@@ -260,12 +270,14 @@ def create(event, context):
         return
 
     args = {
-        "repoOwner": username, 
+        "repoOwner": username,
         "repoName": repository
     }
     if env == 'pr':
-        args['prNumber'] = data['number']
+        prNumber = data['number']
+        args['prNumber'] = prNumber
     else:
+        prNumber = None
         args['refName'] = data['ref']
     ids = get_github_ids(**args)
     if env == 'pr':
@@ -277,7 +289,8 @@ def create(event, context):
     # check if we already have an entry for this one, i.e. may be a retry
     result = table.query(
         IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT'],
-        KeyConditionExpression=Key('repository').eq(data['repository']) & Key('commit_sha').eq(data['commit_sha'])
+        KeyConditionExpression=Key('repository').eq(
+            data['repository']) & Key('commit_sha').eq(data['commit_sha'])
     )
     if result['Count'] > 0:
         logging.info('found existing record in table: {}'.format(result))
@@ -302,7 +315,8 @@ def create(event, context):
         if env == 'pr':
             item['pr'] = data['number']
 
-    success, item['id'] = create_deployment(ids['repoId'], ids['refId'], env)
+    success, item['id'] = create_deployment(
+        ids['repoId'], ids['refId'], env, prNumber=prNumber)
 
     if success is True:
         item['status'] = 'complete'
@@ -319,7 +333,8 @@ def create(event, context):
             "error_message": error_message
         }
 
-    logging.info("item = {%s}" % ', '.join("%s: %r" % (key,val) for (key,val) in item.iteritems()))
+    logging.info("item = {%s}" % ', '.join("%s: %r" % (key, val)
+                                           for (key, val) in item.iteritems()))
     table.put_item(Item=item)
 
     if http_request:
@@ -340,7 +355,7 @@ def response(body=None, status=200):
     response = {
         "statusCode": int(status),
         "isBase64Encoded": False,
-        "headers": { 
+        "headers": {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
         },

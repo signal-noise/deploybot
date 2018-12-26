@@ -132,6 +132,14 @@ def deployment(data=None):
     Process Deployment events
     """
     logging.info(data)
+    create_circleci_deployment(
+        repository=data['repository']['full_name'],
+        environment=data['deployment']['environment'],
+        ref=data['deployment']['ref'],
+        commit_sha=data['deployment']['sha'],
+        number=data['deployment']['payload']['number']
+    )
+    return
 
 
 #
@@ -145,18 +153,23 @@ def create_circleci_deployment(repository, environment, ref, commit_sha, number=
     """
     Creates all required params and triggers function
     """
+    if ref[0:9] == 'refs/tags':
+        ref = ref[10:]
+    elif ref[0:10] == 'refs/heads':
+        ref = ref[11:]
+
     payload = {
         'repository': repository,
         'environment': environment,
         'version': '{}-{}'.format(environment, commit_sha),
     }
     if environment == 'production':
-        payload['tag'] = ref[10:]  # 'refs/tags/XXXX'
-        payload['version'] = ref[11:]  # 'refs/tags/vXXXX'
+        payload['tag'] = payload['version'] = ref
     else:
         payload['revision'] = commit_sha
         if environment == 'pr':
             payload['subdomain'] = 'pr{}'.format(number)
+            payload['version'] = 'pr{}-{}'.format(number, commit_sha)
         else:
             payload['subdomain'] = environment
 
@@ -196,11 +209,12 @@ def is_request_valid(event):
     """
     if 'X-Hub-Signature' in event['headers']:
         signature = event['headers']['X-Hub-Signature']
+
+        # @TODO implement logic
+
     else:
         # Secret not configured at GH
         return True
-
-    # @ToDO implement logic
     return False
 
 
