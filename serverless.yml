@@ -13,7 +13,8 @@ provider:
     DYNAMODB_TABLE_PROJECT: ${self:service}-project-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_USER: ${self:service}-user-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_DEPLOYMENT: ${self:service}-deployment-${opt:stage, self:provider.stage}
-    DYNAMODB_TABLE_DEPLOYMENT_BYREF: ${self:service}-deployment-byref-${opt:stage, self:provider.stage}
+    DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT: repository-commit-index
+    DYNAMODB_TABLE_DEPLOYMENT_BYREF: repository-ref-index
     SLACK_WEBHOOK_URL: ${env:SLACK_WEBHOOK_URL}
     SLACK_CHANNEL: ${env:SLACK_CHANNEL}
     SLACK_SIGNING_SECRET: ${env:SLACK_SIGNING_SECRET}
@@ -132,7 +133,7 @@ resources:
   #         WriteCapacityUnits: 1
   #       TableName: ${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}
   #       # GlobalSecondaryIndexes:
-  #       #   - IndexName: ${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT_BYREF}
+  #       #   - IndexName: ${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT_:}
   #       #     KeySchema:
   #       #       - AttributeName: repository
   #       #         KeyType: HASH

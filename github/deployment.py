@@ -138,16 +138,6 @@ def createDeployment(repoId, refId, env, description=None, url=None):
     """
     Executes an API call based around the createdeployment mutation. 
     """
-    # @TODO query the table to check we dont already have a deployment for this commit
-    # weill require new GSI
-        # table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
-        # result = table.query(
-        #     IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_...'],
-        #     KeyConditionExpression=Key('repository').eq(data['repository']['full_name']) & Key('ref').eq(data['ref'])
-        # )
-        # logging.info('~~GET REF~~')
-        # logging.info(result)
-
     if description is None:
         description = "Automatically created by SN Deploybot"
     headers = {
@@ -205,6 +195,11 @@ def create(event, context):
         raise Exception("Couldn't trigger the deployment.")
         return
 
+    if 'commit_sha' not in data:
+        logging.error("no commit SHA")
+        raise Exception("Couldn't trigger the deployment.")
+        return
+
     # What kind of deployment is this?
     # PR (number)
     # Preview (master branch commit)
@@ -231,30 +226,41 @@ def create(event, context):
         "repoOwner": username, 
         "repoName": repository
     }
-    table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
-    timestamp = int(time.mktime(datetime.now().timetuple()))
-    item = {
-        'repository': data['repository'],
-        'environment': env,
-        'createdAt': timestamp,
-        'updatedAt': timestamp,
-    }
-    if 'ref' in data:
-        item['ref'] = data['ref']
-    if 'trigger' in data:
-        item['trigger'] = data['trigger']
-    if 'commit_sha' in data:
-        item['commit_sha'] = data['commit_sha']
-    if 'commit_author' in data:
-        item['commit_author_github_login'] = data['commit_author']
-
     if env == 'pr':
         args['prNumber'] = data['number']
-        item['pr'] = data['number']
     else:
         args['refName'] = data['ref']
-
     ids = getGitHubIds(**args)
+
+    table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
+    timestamp = int(time.mktime(datetime.now().timetuple()))
+
+    # check if we already have an entry for this one, i.e. may be a retry
+    result = table.query(
+        IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT'],
+        KeyConditionExpression=Key('repository').eq(data['repository']['full_name']) & Key('commit').eq(data['commit_sha'])
+    )
+    logging.info('~~GET REF~~')
+    logging.info(result)
+    if result['Count'] > 0:
+        item = result['Items'][0]
+        item['updatedAt'] = timestamp
+    else:
+        item = {
+            'repository': data['repository'],
+            'environment': env,
+            'commit_sha': data['commit_sha'],
+            'createdAt': timestamp,
+            'updatedAt': timestamp,
+        }
+        if 'ref' in data:
+            item['ref'] = data['ref']
+        if 'trigger' in data:
+            item['trigger'] = data['trigger']
+        if 'commit_author' in data:
+            item['commit_author_github_login'] = data['commit_author']
+        if env == 'pr':
+            item['pr'] = data['number']
 
     if env == 'pr':
         ids['refId'] = ids['prHeadRefId']
@@ -264,16 +270,23 @@ def create(event, context):
     success, item['id'] = createDeployment(ids['repoId'], ids['refId'], env)
 
     if success is True:
-        logging.info("item = {%s}" % ', '.join("%s: %r" % (key,val) for (key,val) in item.iteritems()))
-        table.put_item(Item=item)
-
+        item['status'] = 'complete'
         response_data = {
             "deployment_id": item['id']
         }
     else:
+        error_message = item['id']
+        if 'status checks failed' in item['id']:
+            # deployment can't be made until status checks in place; let's put a record in for the rightevent to update
+            item['status'] = 'pending'
+            item['id'] = timestamp
         response_data = {
-            "error_message": item['id']
+            "error_message": error_message
         }
+
+    logging.info("item = {%s}" % ', '.join("%s: %r" % (key,val) for (key,val) in item.iteritems()))
+    table.put_item(Item=item)
+
     if http_request:
         response = {
             "statusCode": r.status_code,

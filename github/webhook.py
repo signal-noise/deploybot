@@ -80,7 +80,35 @@ def status(data=None):
     """
     Processes Status update actions - only after these should we create deployments
     """
-    logging.info(data)
+    state = data['state']
+    if state != 'pending':
+        logging.info(data)
+
+        table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
+        result = table.query(
+            IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT'],
+            KeyConditionExpression=Key('repository').eq(data['repository']['full_name']) & Key('commit').eq(data['commit']['sha'])
+        )
+        if result['Count'] > 0:
+            dep = result['Items'][0]
+            logging.info(dep)
+
+            if state == 'success':
+                trigger_deployment({
+                    'repository': dep['repository'], 
+                    'environment': dep['environment'], 
+                    'ref': dep['ref'],
+                    'trigger': dep['trigger'],
+                    'commit_author': dep['commit_author_github_login'],
+                    'commit_sha': dep['commit_sha']
+                })
+                return
+            else:
+                table.delete_item(Key={
+                    'repository': dep['repository'],
+                    'id': dep['id']
+                })
+                return
 
 
 def is_request_valid(event):
