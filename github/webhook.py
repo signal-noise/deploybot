@@ -82,7 +82,7 @@ def status(data=None):
     """
     state = data['state']
     if state != 'pending':
-        logging.info('state is {}'.format(state))
+        logging.info('state of {} is {}'.format(data['context'], state))
         table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
         result = table.query(
             IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT'],
