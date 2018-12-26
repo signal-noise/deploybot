@@ -163,7 +163,7 @@ def create_circleci_deployment(repository, environment, ref, commit_sha, number=
     logging.info('calling cci trigger with {}'.format(payload))
     response = trigger_circleci_trigger(payload)
 
-    # write details to DB
+    # write updated details to DB
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
     result = table.query(
         IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT'],
