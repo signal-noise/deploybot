@@ -91,7 +91,7 @@ def status(data=None):
         logging.info('looking for pending deployment with {} and {}'.format(data['repository']['full_name'], data['commit']['sha']))
         if result['Count'] > 0:
             dep = result['Items'][0]
-            logging.info(dep)
+            logging.info('found '.format(dep))
 
             if state == 'success':
                 trigger_deployment({
