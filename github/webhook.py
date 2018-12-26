@@ -86,7 +86,7 @@ def status(data=None):
         table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
         result = table.query(
             IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT'],
-            KeyConditionExpression=Key('repository').eq(data['repository']['full_name']) & Key('commit').eq(data['commit']['sha'])
+            KeyConditionExpression=Key('repository').eq(data['repository']['full_name']) & Key('commit_sha').eq(data['commit']['sha'])
         )
         logging.info('looking for pending deployment with {} and {}'.format(data['repository']['full_name'], data['commit']['sha']))
         if result['Count'] > 0:
@@ -204,4 +204,3 @@ def trigger_deployment(payload):
     parsed_response = json.loads(string_response)
     logging.info(parsed_response)
     return parsed_response
-    

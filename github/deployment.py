@@ -237,7 +237,7 @@ def create(event, context):
     # check if we already have an entry for this one, i.e. may be a retry
     result = table.query(
         IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT'],
-        KeyConditionExpression=Key('repository').eq(data['repository']) & Key('commit').eq(data['commit_sha'])
+        KeyConditionExpression=Key('repository').eq(data['repository']) & Key('commit_sha').eq(data['commit_sha'])
     )
     if result['Count'] > 0:
         logging.info('found existing record in table: {}'.format(result))
