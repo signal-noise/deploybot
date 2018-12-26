@@ -277,7 +277,7 @@ def create(event, context):
     else:
         error_message = item['id']
         if 'status checks failed' in item['id']:
-            # deployment can't be made until status checks in place; let's put a record in for the rightevent to update
+            # deployment failed because of incomplete status checks
             item['status'] = 'pending'
             item['id'] = timestamp
         response_data = {
