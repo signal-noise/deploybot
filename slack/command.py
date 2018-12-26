@@ -182,7 +182,7 @@ def bye(text, context):
 
 def connect_github_user(message, repository, slack_channelid, message_fallback=None):
     response = lambda_client.invoke(
-        FunctionName="deploybot-dev-github_collaborators",
+        FunctionName="{}-github_collaborators".format(os.environ['FUNCTION_PREFIX']),
         InvocationType='RequestResponse',
         Payload=json.dumps({'repository': repository})
     )

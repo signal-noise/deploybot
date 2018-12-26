@@ -5,7 +5,8 @@
   "author": "@marcelkornblum",
   "license": "MIT",
   "dependencies": {
-    "serverless": "^1.34.1",
-    "serverless-python-requirements": "^4.2.5"
+    "serverless": "^1.35.1",
+    "serverless-python-requirements": "^4.2.5",
+    "update": "^0.7.4"
   }
 }

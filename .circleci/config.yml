@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  build:
+  test:
     docker:
       - image: signalnoise/base:10.13
       # - image: signalnoise/python:10.13-2.7
@@ -50,9 +50,16 @@ jobs:
           name: Notify
           command: ./.circleci/notify.sh
 
+  build:
+    docker:
+      - image: signalnoise/base:10.13
+    steps:
+      - checkout
+      - run: ./.circleci/test.sh
+
 workflows:
   version: 2
   test_and_build:
     jobs:
-      - build:
+      - test:
           context: sn-global
