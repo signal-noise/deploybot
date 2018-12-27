@@ -205,7 +205,7 @@ def create_circleci_deployment(repository, environment, ref, commit_sha, number=
         UpdateExpression="set build_url = :u, build_number = :b",
         ExpressionAttributeValues={
             ':u': response['build_url'],
-            ':b': response['build_num']
+            ':b': str(response['build_num'])
         },
         ReturnValues="UPDATED_NEW"
     )
