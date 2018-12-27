@@ -188,23 +188,30 @@ def create_circleci_deployment(repository, environment, ref, commit_sha, number=
         KeyConditionExpression=Key('repository').eq(
             repository) & Key('commit_sha').eq(commit_sha)
     )
-    if result['Count'] > 0:
-        logging.info('found existing record in table: {}'.format(result))
-        item = result['Items'][0]
-        item['updatedAt'] = int(time.mktime(datetime.now().timetuple()))
+    if result['Count'] < 1:
+        logging.error("Couldn't find row for deployment")
+        raise Exception("DB record not found where expected")
 
-        table.update_item(
-            Key={
-                'repository': repository,
-                'id': item['id']
-            },
-            UpdateExpression="set deployment_url = :u, build_number = :b",
-            ExpressionAttributeValues={
-                ':u': response['build_url'],
-                ':b': response['build_num']
-            },
-            ReturnValues="UPDATED_NEW"
-        )
+    item = result['Items'][0]
+    item['updatedAt'] = int(time.mktime(datetime.now().timetuple()))
+    logging.info('updating record: {} with num {} and url {}'.format(
+        item, response['build_num'], response['build_url']))
+
+    table.update_item(
+        Key={
+            'repository': repository,
+            'id': item['id']
+        },
+        UpdateExpression="set build_url = :u, build_number = :b",
+        ExpressionAttributeValues={
+            ':u': response['build_url'],
+            ':b': response['build_num']
+        },
+        ReturnValues="UPDATED_NEW"
+    )
+
+    # @TODO update GH deployment status
+    # @TODO send SQS message to poll CCI & update GH dep status again
 
 
 def is_request_valid(event):

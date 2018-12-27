@@ -42,6 +42,13 @@ provider:
       Resource: "*"
 
 functions:
+  circleci_event:
+    handler: circleci/webhook.receive
+    events:
+      - http:
+          path: circleci/webhook
+          method: post
+          cors: true
   circleci_trigger:
     handler: circleci/trigger.send
 
