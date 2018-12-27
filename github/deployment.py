@@ -133,9 +133,19 @@ def get_create_deployment_status_mutation(mutation_vars):
         mutation {
             createDeploymentStatus(
                 input: {
-                    autoInactive: false,
+                    autoInactive: true,
                     deploymentId: "$deploymentId",
                     state: $state
+    """
+    if 'logUrl' in mutation_vars and mutation_vars['logUrl'] is not None:
+        mutation += """,
+                    logUrl: "$logUrl"
+        """
+    if 'environmentUrl' in mutation_vars and mutation_vars['environmentUrl'] is not None:
+        mutation += """,
+                    environmentUrl: "$environmentUrl"
+        """
+    mutation += """
                 }
             ) {
                 deploymentStatus {
@@ -190,6 +200,8 @@ def create_deployment(repoId, refId, env, description=None, prNumber=None, url=N
     """
     if description is None:
         description = "Automatically created by SN Deploybot"
+    if env == 'pr' and prNumber is not None:
+        env = 'pr{}'.format(prNumber)
     headers = {
         'Accept': 'application/vnd.github.flash-preview+json',
         'Content-Type': 'application/json',
@@ -215,20 +227,25 @@ def create_deployment(repoId, refId, env, description=None, prNumber=None, url=N
         return (False, json_data['errors'][0]['message'])
 
 
-def create_deployment_status(deploymentId, status):
+def create_deployment_status(deploymentId, status, logUrl=None, environmentUrl=None):
     """
     Executes an API call based around the createdeploymentstatus mutation.
     """
+    payload = {
+        'deploymentId': deploymentId,
+        'state': status
+    }
+    if logUrl is not None:
+        payload['logUrl'] = logUrl
+    if environmentUrl is not None:
+        payload['environmentUrl'] = environmentUrl
     headers = {
         'Accept': 'application/vnd.github.flash-preview+json',
         'Content-Type': 'application/json',
         'Authorization': 'bearer {}'.format(get_installation_token())
     }
     uri = GITHUB_GRAPHQL_URI
-    payload = get_create_deployment_status_mutation({
-        'deploymentId': deploymentId,
-        'state': status
-    })
+    payload = get_create_deployment_status_mutation(payload)
 
     logging.info(payload)
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
@@ -412,7 +429,6 @@ def create_status(event, context):
     Endpoint for creating new statuses for GitHub Deployments. Designed to be triggered by another
     function but will work if triggered via HTTP or even locally/directly.
     Expects to be provided with
-    repository (e.g. signal-noise/deploybot)
     deploymentId
     status (https://developer.github.com/v4/enum/deploymentstatusstate/)
     """
@@ -422,18 +438,6 @@ def create_status(event, context):
     if 'body' in data:
         http_request = True
         data = json.loads(event['body'])
-
-    # if 'repository' not in data:
-    #     logging.error("Validation Failed")
-    #     raise Exception("Couldn't add a status to the deployment.")
-    #     return
-
-    # try:
-    #     (username, repository) = data['repository'].split('/')
-    # except ValueError as e:
-    #     logging.error("Validation Failed")
-    #     raise Exception("Couldn't add a status to the deployment.")
-    #     return
 
     if 'deploymentId' not in data:
         logging.error("no deploymentId")
@@ -451,8 +455,15 @@ def create_status(event, context):
         raise Exception("Couldn't add a status to the deployment.")
         return
 
-    success, item['id'] = create_deployment_status(
-        data['deploymentId'], status)
+    kwargs = {
+        "deploymentId": data['deploymentId'],
+        "status": status
+    }
+    if 'logUrl' in data:
+        kwargs['logUrl'] = data['logUrl']
+    if 'environmentUrl' in data:
+        kwargs['environmentUrl'] = data['environmentUrl']
+    success, item['id'] = create_deployment_status(**kwargs)
 
     if success is True:
         response_data = {

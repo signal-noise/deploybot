@@ -210,9 +210,6 @@ def create_circleci_deployment(repository, environment, ref, commit_sha, number=
         ReturnValues="UPDATED_NEW"
     )
 
-    # @TODO update GH deployment status
-    # @TODO send SQS message to poll CCI & update GH dep status again
-
 
 def is_request_valid(event):
     """
