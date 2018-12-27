@@ -447,8 +447,10 @@ def create_status(event, context):
         raise Exception("Couldn't add a status to the deployment.")
         return
 
-    success, item['id'] = create_deployment_status(
-        data['deploymentId'], status)
+    success, item['id'] = create_deployment_status({
+        "deploymentId": data['deploymentId'],
+        "state": status
+    })
 
     if success is True:
         response_data = {
