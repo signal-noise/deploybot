@@ -223,7 +223,7 @@ def create_deployment_status(deploymentId, status):
     uri = GITHUB_GRAPHQL_URI
     payload = get_create_deployment_status_mutation({
         'deploymentId': deploymentId,
-        'status': status
+        'state': status
     })
 
     logging.info(payload)
@@ -447,10 +447,8 @@ def create_status(event, context):
         raise Exception("Couldn't add a status to the deployment.")
         return
 
-    success, item['id'] = create_deployment_status({
-        "deploymentId": data['deploymentId'],
-        "state": status
-    })
+    success, item['id'] = create_deployment_status(
+        data['deploymentId'], status)
 
     if success is True:
         response_data = {
