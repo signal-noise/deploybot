@@ -159,7 +159,7 @@ def deployment(data=None):
 #
 
 
-def create_circleci_deployment(repository, environment, ref, commit_sha, number=None):
+def create_circleci_deployment(repository, environment, ref, commit_sha, number=None, url=None):
     """
     Creates all required params and triggers function
     """
@@ -178,6 +178,11 @@ def create_circleci_deployment(repository, environment, ref, commit_sha, number=
     else:
         payload['revision'] = commit_sha
         payload['subdomain'] = environment
+
+    if number is not None:
+        payload['number'] = number
+    if url is not None:
+        payload['url'] = url
 
     logging.info('calling cci trigger with {}'.format(payload))
     response = trigger_circleci_trigger(payload)

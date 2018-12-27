@@ -118,11 +118,11 @@ def set(text, context):
                 },
                 UpdateExpression='SET {} = :v'.format(setting),
                 ExpressionAttributeValues={
-                    ':v': {val_type: value},
+                    ':v': value,  # surely {val_type: value} for maps ?
                 },
                 ReturnValues="ALL_NEW"
             )
-            return slack_response(FN_RESPONSE_SET_CONFIRM % (command, " ".join(parts[1::])))
+            return slack_response(FN_RESPONSE_SET_CONFIRM % (setting, " ".join(parts[1::])))
 
     return slack_response(ERR_SET)
 
@@ -176,7 +176,7 @@ def unset(text, context):
                 ExpressionAttributeValues=attrs,
                 ReturnValues="ALL_NEW"
             )
-            return slack_response(FN_RESPONSE_SET_CONFIRM % (command, " ".join(parts[1::])))
+            return slack_response(FN_RESPONSE_SET_CONFIRM % (setting, " ".join(parts[1::])))
 
     return slack_response(FN_RESPONSE_UNSET)
 
