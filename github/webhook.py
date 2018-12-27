@@ -133,7 +133,6 @@ def deployment(data=None):
     """
     Process Deployment events
     """
-    logging.info(data)
     number = (data['deployment']['payload']['prNumber']
               if 'payload' in data['deployment']
               and 'prNumber' in data['deployment']['payload']
@@ -194,7 +193,7 @@ def create_circleci_deployment(repository, environment, ref, commit_sha, number=
         item = result['Items'][0]
         item['updatedAt'] = int(time.mktime(datetime.now().timetuple()))
 
-        table.update(
+        table.update_item(
             Key={
                 'repository': repository,
                 'id': item['id']
@@ -325,5 +324,4 @@ def trigger_circleci_trigger(payload):
 
     string_response = response["Payload"].read().decode('utf-8')
     parsed_response = json.loads(string_response)
-    logging.info(parsed_response)
     return parsed_response

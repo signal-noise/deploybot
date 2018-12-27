@@ -298,6 +298,11 @@ def create(event, context):
         logging.info('found existing record in table: {}'.format(result))
         item = result['Items'][0]
         item['updatedAt'] = timestamp
+        # we're going to write a new record in a moment so we'll delete this now...
+        table.delete_item(Key={
+            'repository': item['repository'],
+            'id': item['id']
+        })
     else:
         item = {
             'repository': data['repository'],
