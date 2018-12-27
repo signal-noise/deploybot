@@ -262,8 +262,8 @@ def get_url_for_env(repo, env):
     entries = table.scan()
     for entry in entries['Items']:
         if entry['repository'] == repo:
-            if 'url' in entry and env in entry['url']
-            return entry['url'][env]
+            if 'url' in entry and env in entry['url']:
+                return entry['url'][env]
             elif 'baseurl' in entry:
                 return "{}.{}".format(env, entry['baseurl'])
     return None

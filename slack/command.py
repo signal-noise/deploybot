@@ -74,11 +74,11 @@ def help(*args, **kwargs):
     return slack_response(FN_RESPONSE_HELP)
 
 
-def set(text=None, context):
+def set(text, context):
     """
     Allows individual settings to be created
     """
-    if text is None or len(text) == 0:
+    if len(text) == 0 or text.strip() == '':
         return slack_response(FN_RESPONSE_SET)
 
     parts = text.split()
