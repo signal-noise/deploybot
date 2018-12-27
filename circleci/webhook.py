@@ -34,8 +34,8 @@ def receive(event, context):
     if result['Count'] > 0:
         logging.info(result)
         dep = result['Items'][0]
-        logging.info('need to update status of {} to {}').format(
-            dep, outcome)
+        logging.info('need to update status of {} to {}'.format(
+            dep, outcome))
 
         if outcome in ('no_tests', ):
             status = 'ERROR'
