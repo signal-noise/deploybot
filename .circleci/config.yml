@@ -7,6 +7,19 @@ jobs:
     working_directory: ~/project
     steps:
       - run: "circleci step halt" # we can't deploy from CI at the moment :/
+
+  build:
+    docker:
+      - image: signalnoise/base:10.13
+    steps:
+      - run: echo $ENVIRONMENT
+      - run: echo $VERSION
+      - run: echo $SUBDOMAIN
+
+  old_build:
+    docker:
+      - image: signalnoise/base:10.13
+    steps:
       - checkout
       - run:
           name: Install Dependencies
@@ -48,14 +61,11 @@ jobs:
           command: ./node_modules/.bin/serverless deploy --verbose
       - run:
           name: Notify
-          command: ./.circleci/notify.sh
+          command: echo 'To Do'
 
-  build:
-    docker:
-      - image: signalnoise/base:10.13
-    steps:
-      - checkout
-      - run: ./.circleci/test.sh
+notify:
+  webhooks:
+    - url: https://dwlnd1wnmh.execute-api.eu-west-2.amazonaws.com/prod/circleci/webhook
 
 workflows:
   version: 2

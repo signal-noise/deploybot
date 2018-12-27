@@ -12,7 +12,7 @@ from botocore.vendored import requests
 
 dynamodb = boto3.resource('dynamodb')
 
-GITHUB_GRAPHQL_URI="https://api.github.com/graphql"
+GITHUB_GRAPHQL_URI = "https://api.github.com/graphql"
 
 
 logger = logging.getLogger()
@@ -22,22 +22,29 @@ if logger.handlers:
 logging.basicConfig(level=logging.INFO)
 
 
-def getRepoQuery(query_vars):
+#
+#
+# GitHub GraphQL query generation functions
+#
+#
+
+
+def get_repo_query(query_vars):
     """
-    Builds a GraphQL query to get repo info including refs and 
-    PR details if provided. The single param is a dict with the 
+    Builds a GraphQL query to get repo info including refs and
+    PR details if provided. The single param is a dict with the
     following keys:
-    repoOwner :required 
-    repoName :required  
+    repoOwner :required
+    repoName :required
     refName
     prNumber
     """
-    query="""
+    query = """
         query {
             repository(owner:"$repoOwner", name:"$repoName") {
                 id,
-                defaultBranchRef { 
-                    id 
+                defaultBranchRef {
+                    id
                 }
     """
     if 'refName' in query_vars:
@@ -63,52 +70,104 @@ def getRepoQuery(query_vars):
         }
     """
     t = Template(query)
-    return { 'query': t.substitute(query_vars) }
+    return {'query': t.substitute(query_vars)}
 
 
-def getCreateDeploymentMutation(mutation_vars):
+def get_create_deployment_mutation(mutation_vars):
     """
-    Builds a GraphQL mutation to create a new deployment. The single param 
+    Builds a GraphQL mutation to create a new deployment. The single param
     is a dict with the following keys:
-    repoId :required 
-    refId :required  
-    environment :required 
-    description :required 
-    url :required 
+    repoId :required
+    refId :required
+    environment :required
+    description :required
+    prNumber
+    url
     """
-    mutation = """ 
-        mutation { 
-            createDeployment( 
-                input: {  
-                    repositoryId: "$repoId",  
-                    refId: "$refId",  
-                    environment: "$environment",   
-                    description: "$description", 
+    payload = {}
+    if 'prNumber' in mutation_vars and mutation_vars['prNumber'] is not None:
+        payload['prNumber'] = mutation_vars.pop('prNumber')
+    if 'url' in mutation_vars and mutation_vars['url'] is not None:
+        payload['url'] = mutation_vars.pop('url')
+    mutation = """
+        mutation {
+            createDeployment(
+                input: {
+                    repositoryId: "$repoId",
+                    refId: "$refId",
+                    environment: "$environment",
+                    description: "$description",
                     autoMerge: false
-                } 
-            ) {  
+    """
+    if payload != {}:
+        mutation += """,
+                    payload: "$payload"
+        """
+        payload_str = "{}".format(json.dumps(payload).replace('"', '\\"'))
+        # logging.info(payload_str)
+        mutation_vars['payload'] = payload_str
+    mutation += """
+                }
+            ) {
                 deployment {
                     id,
                     latestStatus {
                         state
                     }
-                } 
-            } 
+                }
+            }
         }
     """
-                    # removed from input above: 
-                    # payload: {
-                    #     url: "$url"
-                    # }  
-                    # requiredContexts: [] 
     t = Template(mutation)
-    return { 'query': t.substitute(mutation_vars) }
+    return {'query': t.substitute(mutation_vars)}
 
 
-def getGitHubIds(**args):
+def get_create_deployment_status_mutation(mutation_vars):
     """
-    Executes an API call based around the repo info query, to return NodeIDs 
-    of relevant Github objects. 
+    Builds a GraphQL mutation to create a new status for an existing
+    deployment. The single param is a dict with the following keys:
+    deploymentId :required
+    state :required
+    """
+    mutation = """
+        mutation {
+            createDeploymentStatus(
+                input: {
+                    autoInactive: true,
+                    deploymentId: "$deploymentId",
+                    state: $state
+    """
+    if 'logUrl' in mutation_vars and mutation_vars['logUrl'] is not None:
+        mutation += """,
+                    logUrl: "$logUrl"
+        """
+    if 'environmentUrl' in mutation_vars and mutation_vars['environmentUrl'] is not None:
+        mutation += """,
+                    environmentUrl: "$environmentUrl"
+        """
+    mutation += """
+                }
+            ) {
+                deploymentStatus {
+                    id
+                }
+            }
+        }
+    """
+    t = Template(mutation)
+    return {'query': t.substitute(mutation_vars)}
+
+#
+#
+# GitHub query functions
+#
+#
+
+
+def get_github_ids(**args):
+    """
+    Executes an API call based around the repo info query, to return NodeIDs
+    of relevant Github objects.
     repoOwner :required
     repoName : required
     refName
@@ -116,10 +175,10 @@ def getGitHubIds(**args):
     """
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'bearer {}'.format(get_installation_token()) 
+        'Authorization': 'bearer {}'.format(get_installation_token())
     }
     uri = GITHUB_GRAPHQL_URI
-    payload = getRepoQuery(args)
+    payload = get_repo_query(args)
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
     json_data = r.json()
     ids = {
@@ -135,26 +194,30 @@ def getGitHubIds(**args):
     return ids
 
 
-def createDeployment(repoId, refId, env, description=None, url=None):
+def create_deployment(repoId, refId, env, description=None, prNumber=None, url=None):
     """
-    Executes an API call based around the createdeployment mutation. 
+    Executes an API call based around the createdeployment mutation.
     """
     if description is None:
         description = "Automatically created by SN Deploybot"
+    if env == 'pr' and prNumber is not None:
+        env = 'pr{}'.format(prNumber)
     headers = {
         'Accept': 'application/vnd.github.flash-preview+json',
         'Content-Type': 'application/json',
-        'Authorization': 'bearer {}'.format(get_installation_token()) 
+        'Authorization': 'bearer {}'.format(get_installation_token())
     }
     uri = GITHUB_GRAPHQL_URI
-    payload = getCreateDeploymentMutation({
-        'repoId': repoId, 
-        'refId': refId, 
-        'environment': env, 
+    payload = get_create_deployment_mutation({
+        'repoId': repoId,
+        'refId': refId,
+        'environment': env,
         'description': description,
-        # 'url': 'http://hello.com'
+        'prNumber': prNumber,
+        'url': url
     })
 
+    logging.info(payload)
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
     json_data = r.json()
     logging.info(json_data)
@@ -162,6 +225,64 @@ def createDeployment(repoId, refId, env, description=None, url=None):
         return (True, json_data['data']['createDeployment']['deployment']['id'])
     else:
         return (False, json_data['errors'][0]['message'])
+
+
+def create_deployment_status(deploymentId, status, logUrl=None, environmentUrl=None):
+    """
+    Executes an API call based around the createdeploymentstatus mutation.
+    """
+    payload = {
+        'deploymentId': deploymentId,
+        'state': status
+    }
+    if logUrl is not None:
+        payload['logUrl'] = logUrl
+    if environmentUrl is not None:
+        payload['environmentUrl'] = environmentUrl
+    headers = {
+        'Accept': 'application/vnd.github.flash-preview+json',
+        'Content-Type': 'application/json',
+        'Authorization': 'bearer {}'.format(get_installation_token())
+    }
+    uri = GITHUB_GRAPHQL_URI
+    payload = get_create_deployment_status_mutation(payload)
+
+    logging.info(payload)
+    r = requests.post(uri, data=json.dumps(payload), headers=headers)
+    json_data = r.json()
+    logging.info(json_data)
+    # if json_data['data']['createDeploymentStatus']['deployment'] is not None:
+    #     return (True, json_data['data']['createDeployment']['deployment']['id'])
+    # else:
+    #     return (False, json_data['errors'][0]['message'])
+
+
+def get_installation_token():
+    jwt = generate_jwt()
+
+    headers = {
+        'Accept': 'application/vnd.github.machine-man-preview+json',
+        'Authorization': 'Bearer {}'.format(jwt)
+    }
+    uri = 'https://api.github.com/app/installations/{}/access_tokens'.format(
+        os.environ['GITHUB_APP_INSTALLATIONID'])
+
+    r = requests.post(uri, headers=headers)
+    json_data = r.json()
+
+    return json_data['token']
+
+
+if __name__ == "__main__":
+    create({'repository': 'signal-noise/deploybot',
+            'environment': 'pr', 'number': 13}, '')
+
+
+#
+#
+# Response logic
+#
+#
 
 
 def create(event, context):
@@ -186,14 +307,14 @@ def create(event, context):
         raise Exception("Couldn't trigger the deployment.")
         return
 
-    if 'environment' not in data:
+    try:
+        (username, repository) = data['repository'].split('/')
+    except ValueError as e:
         logging.error("Validation Failed")
         raise Exception("Couldn't trigger the deployment.")
         return
 
-    try:
-        (username, repository) = data['repository'].split('/')
-    except ValueError as e:
+    if 'environment' not in data:
         logging.error("Validation Failed")
         raise Exception("Couldn't trigger the deployment.")
         return
@@ -220,14 +341,16 @@ def create(event, context):
         return
 
     args = {
-        "repoOwner": username, 
+        "repoOwner": username,
         "repoName": repository
     }
     if env == 'pr':
-        args['prNumber'] = data['number']
+        prNumber = data['number']
+        args['prNumber'] = prNumber
     else:
+        prNumber = None
         args['refName'] = data['ref']
-    ids = getGitHubIds(**args)
+    ids = get_github_ids(**args)
     if env == 'pr':
         ids['refId'] = ids['prHeadRefId']
 
@@ -237,12 +360,18 @@ def create(event, context):
     # check if we already have an entry for this one, i.e. may be a retry
     result = table.query(
         IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT'],
-        KeyConditionExpression=Key('repository').eq(data['repository']) & Key('commit_sha').eq(data['commit_sha'])
+        KeyConditionExpression=Key('repository').eq(
+            data['repository']) & Key('commit_sha').eq(data['commit_sha'])
     )
     if result['Count'] > 0:
         logging.info('found existing record in table: {}'.format(result))
         item = result['Items'][0]
         item['updatedAt'] = timestamp
+        # we're going to write a new record in a moment so we'll delete this now...
+        table.delete_item(Key={
+            'repository': item['repository'],
+            'id': item['id']
+        })
     else:
         item = {
             'repository': data['repository'],
@@ -262,7 +391,8 @@ def create(event, context):
         if env == 'pr':
             item['pr'] = data['number']
 
-    success, item['id'] = createDeployment(ids['repoId'], ids['refId'], env)
+    success, item['id'] = create_deployment(
+        ids['repoId'], ids['refId'], env, prNumber=prNumber)
 
     if success is True:
         item['status'] = 'complete'
@@ -279,9 +409,70 @@ def create(event, context):
             "error_message": error_message
         }
 
-    logging.info("item = {%s}" % ', '.join("%s: %r" % (key,val) for (key,val) in item.iteritems()))
+    logging.info("item = {%s}" % ', '.join("%s: %r" % (key, val)
+                                           for (key, val) in item.iteritems()))
     table.put_item(Item=item)
 
+    if http_request:
+        response = {
+            "statusCode": r.status_code,
+            "body": response_data
+        }
+    else:
+        response = response_data
+
+    return response
+
+
+def create_status(event, context):
+    """
+    Endpoint for creating new statuses for GitHub Deployments. Designed to be triggered by another
+    function but will work if triggered via HTTP or even locally/directly.
+    Expects to be provided with
+    deploymentId
+    status (https://developer.github.com/v4/enum/deploymentstatusstate/)
+    """
+    http_request = False
+    data = event
+    logging.info(data)
+    if 'body' in data:
+        http_request = True
+        data = json.loads(event['body'])
+
+    if 'deploymentId' not in data:
+        logging.error("no deploymentId")
+        raise Exception("Couldn't add a status to the deployment.")
+        return
+
+    if 'status' not in data:
+        logging.error("no status")
+        raise Exception("Couldn't add a status to the deployment.")
+        return
+
+    status = data['status'].upper()
+    if data['status'] not in ('ERROR', 'FAILURE', 'INACTIVE', 'PENDING', 'SUCCESS'):
+        logging.error("status string not valid")
+        raise Exception("Couldn't add a status to the deployment.")
+        return
+
+    kwargs = {
+        "deploymentId": data['deploymentId'],
+        "status": status
+    }
+    if 'logUrl' in data:
+        kwargs['logUrl'] = data['logUrl']
+    if 'environmentUrl' in data:
+        kwargs['environmentUrl'] = data['environmentUrl']
+    success, item['id'] = create_deployment_status(**kwargs)
+
+    if success is True:
+        response_data = {
+            "deployment_id": item['id']
+        }
+    else:
+        response_data = {
+            "error_message": error_message
+        }
     if http_request:
         response = {
             "statusCode": r.status_code,
@@ -300,7 +491,7 @@ def response(body=None, status=200):
     response = {
         "statusCode": int(status),
         "isBase64Encoded": False,
-        "headers": { 
+        "headers": {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
         },
@@ -326,22 +517,3 @@ def generate_jwt():
         algorithm='RS256')
 
     return token.decode('utf-8')
-
-
-def get_installation_token():
-    jwt = generate_jwt()
-
-    headers = {
-        'Accept': 'application/vnd.github.machine-man-preview+json',
-        'Authorization': 'Bearer {}'.format(jwt) 
-    }
-    uri = 'https://api.github.com/app/installations/{}/access_tokens'.format(os.environ['GITHUB_APP_INSTALLATIONID'])
-
-    r = requests.post(uri, headers=headers)
-    json_data = r.json()
- 
-    return json_data['token']
-
-
-if __name__ == "__main__":
-    create({'repository': 'signal-noise/deploybot', 'environment': 'pr', 'number': 13}, '')

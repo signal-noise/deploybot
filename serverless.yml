@@ -14,7 +14,7 @@ provider:
     DYNAMODB_TABLE_USER: ${self:service}-user-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_DEPLOYMENT: ${self:service}-deployment-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT: repository-commit-index
-    DYNAMODB_TABLE_DEPLOYMENT_BYREF: repository-ref-index
+    DYNAMODB_TABLE_DEPLOYMENT_BYBUILDNUM: repository-build_number-index
     SLACK_WEBHOOK_URL: ${env:SLACK_WEBHOOK_URL}
     SLACK_CHANNEL: ${env:SLACK_CHANNEL}
     SLACK_SIGNING_SECRET: ${env:SLACK_SIGNING_SECRET}
@@ -36,12 +36,20 @@ provider:
         - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_PROJECT}"
         - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_USER}"
         - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}/*"
     - Effect: Allow
       Action:
         - lambda:InvokeFunction
       Resource: "*"
 
 functions:
+  circleci_event:
+    handler: circleci/webhook.receive
+    events:
+      - http:
+          path: circleci/webhook
+          method: post
+          cors: true
   circleci_trigger:
     handler: circleci/trigger.send
 
@@ -49,6 +57,8 @@ functions:
     handler: github/collaborators.get
   github_deployment_create:
     handler: github/deployment.create
+  github_deployment_create_status:
+    handler: github/deployment.create_status
   github_event:
     handler: github/webhook.receive
     events:
