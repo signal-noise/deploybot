@@ -31,7 +31,7 @@ def send(event, context):
     try:
         (username, repository) = data['repository'].split('/')
     except ValueError as e:
-        logging.error("Repository name not in right format)
+        logging.error("Repository name not in right format")
         raise Exception("Couldn't trigger a build.")
 
     if 'revision' not in data and 'tag' not in data:
