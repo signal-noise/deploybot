@@ -132,12 +132,16 @@ def deployment(data=None):
     Process Deployment events
     """
     logging.info(data)
+    number = (data['deployment']['payload']['prNumber']
+              if 'payload' in data['deployment']
+              and 'prNumber' in data['deployment']['payload']
+              else None)
     create_circleci_deployment(
         repository=data['repository']['full_name'],
         environment=data['deployment']['environment'],
         ref=data['deployment']['ref'],
         commit_sha=data['deployment']['sha'],
-        number=data['deployment']['payload']['number']
+        number=number
     )
     return
 
