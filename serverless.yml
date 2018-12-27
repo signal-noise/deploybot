@@ -14,7 +14,7 @@ provider:
     DYNAMODB_TABLE_USER: ${self:service}-user-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_DEPLOYMENT: ${self:service}-deployment-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT: repository-commit-index
-    DYNAMODB_TABLE_DEPLOYMENT_BYREF: repository-ref-index
+    DYNAMODB_TABLE_DEPLOYMENT_BYBUILDNUM: repository-build_number-index
     SLACK_WEBHOOK_URL: ${env:SLACK_WEBHOOK_URL}
     SLACK_CHANNEL: ${env:SLACK_CHANNEL}
     SLACK_SIGNING_SECRET: ${env:SLACK_SIGNING_SECRET}
