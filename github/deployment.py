@@ -137,7 +137,11 @@ def get_create_deployment_status_mutation(mutation_vars):
                     deploymentId: "$deploymentId",
                     state: "$state"
                 }
-            )
+            ) {
+                deploymentStatus {
+                    id
+                }
+            }
         }
     """
     t = Template(mutation)
