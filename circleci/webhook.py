@@ -27,7 +27,7 @@ def receive(event, context):
         KeyConditionExpression=Key('repository').eq(
             "{}/{}".format(data['payload']['username'],
                            data['payload']['reponame'])
-        ) & Key('build_number').eq(data['payload']['build_num'])
+        ) & Key('build_number').eq(str(data['payload']['build_num']))
     )
 
     logging.info(result)
