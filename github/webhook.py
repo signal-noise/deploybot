@@ -103,28 +103,30 @@ def status(data=None):
             data['repository']['full_name'], data['commit']['sha']))
         if result['Count'] > 0:
             dep = result['Items'][0]
-            logging.info('found {}'.format(dep))
+            if dep['status'] == 'pending':
+                logging.info('found {}'.format(dep))
 
-            if state == 'success':
-                record = {
-                    'repository': dep['repository'],
-                    'environment': dep['environment'],
-                    'ref': dep['ref'],
-                    'trigger': dep['trigger'],
-                    'commit_author': dep['commit_author_github_login'],
-                    'commit_sha': dep['commit_sha']
-                }
-                if dep['environment'] == 'pr':
-                    record['number'] = int(dep['pr'])
-                trigger_github_deployment_create(record)
-                return
-            else:
-                logging.info('deleting item from table')
-                table.delete_item(Key={
-                    'repository': dep['repository'],
-                    'id': dep['id']
-                })
-                return
+                if state == 'success':
+                    record = {
+                        'repository': dep['repository'],
+                        'environment': dep['environment'],
+                        'ref': dep['ref'],
+                        'trigger': dep['trigger'],
+                        'commit_author': dep['commit_author_github_login'],
+                        'commit_sha': dep['commit_sha']
+                    }
+                    if dep['environment'] == 'pr':
+                        record['number'] = int(dep['pr'])
+                    trigger_github_deployment_create(record)
+                    return
+                else:
+                    logging.info('deleting item from table')
+                    table.delete_item(Key={
+                        'repository': dep['repository'],
+                        'id': dep['id']
+                    })
+                    return
+    return
 
 
 def deployment(data=None):

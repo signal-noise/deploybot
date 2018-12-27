@@ -12,6 +12,14 @@ jobs:
     docker:
       - image: signalnoise/base:10.13
     steps:
+      - run: echo $ENVIRONMENT
+      - run: echo $VERSION
+      - run: echo $SUBDOMAIN
+
+  old_build:
+    docker:
+      - image: signalnoise/base:10.13
+    steps:
       - checkout
       - run:
           name: Install Dependencies
