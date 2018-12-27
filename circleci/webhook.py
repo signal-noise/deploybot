@@ -19,8 +19,6 @@ def receive(event, context):
     Handler for events sent via CircleCI webhook
     """
     data = json.loads(event['body'])
-    logging.info(data)
-
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
     result = table.query(
         IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYBUILDNUM'],
@@ -29,5 +27,7 @@ def receive(event, context):
                            data['payload']['reponame'])
         ) & Key('build_number').eq(str(data['payload']['build_num']))
     )
-
-    logging.info(result)
+    if result['Count'] > 0:
+        dep = result['Items'][0]
+        logging.info('need to update status of {} to {}').format(
+            dep, data['status'])
