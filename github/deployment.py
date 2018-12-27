@@ -133,7 +133,7 @@ def get_create_deployment_status_mutation(mutation_vars):
         mutation {
             createDeploymentStatus(
                 input: {
-                    autoInactive: true,
+                    autoInactive: false,
                     deploymentId: "$deploymentId",
                     state: "$state"
                 }
@@ -447,7 +447,8 @@ def create_status(event, context):
         raise Exception("Couldn't add a status to the deployment.")
         return
 
-    success, item['id'] = create_deployment_status(deploymentId, status)
+    success, item['id'] = create_deployment_status(
+        data['deploymentId'], status)
 
     if success is True:
         response_data = {
