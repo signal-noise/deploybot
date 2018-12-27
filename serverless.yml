@@ -57,6 +57,8 @@ functions:
     handler: github/collaborators.get
   github_deployment_create:
     handler: github/deployment.create
+  github_deployment_create_status:
+    handler: github/deployment.create_status
   github_event:
     handler: github/webhook.receive
     events:

@@ -31,11 +31,11 @@ logging.basicConfig(level=logging.INFO)
 
 def get_repo_query(query_vars):
     """
-    Builds a GraphQL query to get repo info including refs and 
-    PR details if provided. The single param is a dict with the 
+    Builds a GraphQL query to get repo info including refs and
+    PR details if provided. The single param is a dict with the
     following keys:
-    repoOwner :required 
-    repoName :required  
+    repoOwner :required
+    repoName :required
     refName
     prNumber
     """
@@ -43,8 +43,8 @@ def get_repo_query(query_vars):
         query {
             repository(owner:"$repoOwner", name:"$repoName") {
                 id,
-                defaultBranchRef { 
-                    id 
+                defaultBranchRef {
+                    id
                 }
     """
     if 'refName' in query_vars:
@@ -75,27 +75,28 @@ def get_repo_query(query_vars):
 
 def get_create_deployment_mutation(mutation_vars):
     """
-    Builds a GraphQL mutation to create a new deployment. The single param 
+    Builds a GraphQL mutation to create a new deployment. The single param
     is a dict with the following keys:
-    repoId :required 
-    refId :required  
-    environment :required 
-    description :required 
-    url :required 
+    repoId :required
+    refId :required
+    environment :required
+    description :required
+    prNumber
+    url
     """
     payload = {}
     if 'prNumber' in mutation_vars and mutation_vars['prNumber'] is not None:
         payload['prNumber'] = mutation_vars.pop('prNumber')
     if 'url' in mutation_vars and mutation_vars['url'] is not None:
         payload['url'] = mutation_vars.pop('url')
-    mutation = """ 
-        mutation { 
-            createDeployment( 
-                input: {  
-                    repositoryId: "$repoId",  
-                    refId: "$refId",  
-                    environment: "$environment",   
-                    description: "$description", 
+    mutation = """
+        mutation {
+            createDeployment(
+                input: {
+                    repositoryId: "$repoId",
+                    refId: "$refId",
+                    environment: "$environment",
+                    description: "$description",
                     autoMerge: false
     """
     if payload != {}:
@@ -105,16 +106,38 @@ def get_create_deployment_mutation(mutation_vars):
         payload_str = "{}".format(json.dumps(payload).replace('"', '\\"'))
         # logging.info(payload_str)
         mutation_vars['payload'] = payload_str
-    mutation += """ 
-                } 
-            ) {  
+    mutation += """
+                }
+            ) {
                 deployment {
                     id,
                     latestStatus {
                         state
                     }
-                } 
-            } 
+                }
+            }
+        }
+    """
+    t = Template(mutation)
+    return {'query': t.substitute(mutation_vars)}
+
+
+def get_create_deployment_status_mutation(mutation_vars):
+    """
+    Builds a GraphQL mutation to create a new status for an existing
+    deployment. The single param is a dict with the following keys:
+    deploymentId :required
+    state :required
+    """
+    mutation = """
+        mutation {
+            createDeploymentStatus(
+                input: {
+                    autoInactive: true,
+                    deploymentId: "$deploymentId",
+                    state: "$state"
+                }
+            )
         }
     """
     t = Template(mutation)
@@ -129,8 +152,8 @@ def get_create_deployment_mutation(mutation_vars):
 
 def get_github_ids(**args):
     """
-    Executes an API call based around the repo info query, to return NodeIDs 
-    of relevant Github objects. 
+    Executes an API call based around the repo info query, to return NodeIDs
+    of relevant Github objects.
     repoOwner :required
     repoName : required
     refName
@@ -159,7 +182,7 @@ def get_github_ids(**args):
 
 def create_deployment(repoId, refId, env, description=None, prNumber=None, url=None):
     """
-    Executes an API call based around the createdeployment mutation. 
+    Executes an API call based around the createdeployment mutation.
     """
     if description is None:
         description = "Automatically created by SN Deploybot"
@@ -186,6 +209,31 @@ def create_deployment(repoId, refId, env, description=None, prNumber=None, url=N
         return (True, json_data['data']['createDeployment']['deployment']['id'])
     else:
         return (False, json_data['errors'][0]['message'])
+
+
+def create_deployment_status(deploymentId, status):
+    """
+    Executes an API call based around the createdeploymentstatus mutation.
+    """
+    headers = {
+        'Accept': 'application/vnd.github.flash-preview+json',
+        'Content-Type': 'application/json',
+        'Authorization': 'bearer {}'.format(get_installation_token())
+    }
+    uri = GITHUB_GRAPHQL_URI
+    payload = get_create_deployment_status_mutation({
+        'deploymentId': deploymentId,
+        'status': status
+    })
+
+    logging.info(payload)
+    r = requests.post(uri, data=json.dumps(payload), headers=headers)
+    json_data = r.json()
+    logging.info(json_data)
+    # if json_data['data']['createDeploymentStatus']['deployment'] is not None:
+    #     return (True, json_data['data']['createDeployment']['deployment']['id'])
+    # else:
+    #     return (False, json_data['errors'][0]['message'])
 
 
 def get_installation_token():
@@ -238,14 +286,14 @@ def create(event, context):
         raise Exception("Couldn't trigger the deployment.")
         return
 
-    if 'environment' not in data:
+    try:
+        (username, repository) = data['repository'].split('/')
+    except ValueError as e:
         logging.error("Validation Failed")
         raise Exception("Couldn't trigger the deployment.")
         return
 
-    try:
-        (username, repository) = data['repository'].split('/')
-    except ValueError as e:
+    if 'environment' not in data:
         logging.error("Validation Failed")
         raise Exception("Couldn't trigger the deployment.")
         return
@@ -353,6 +401,71 @@ def create(event, context):
         response = response_data
 
     return response
+
+
+def create_status(event, context):    """
+    Endpoint for creating new statuses for GitHub Deployments. Designed to be triggered by another
+    function but will work if triggered via HTTP or even locally/directly.
+    Expects to be provided with
+    repository (e.g. signal-noise/deploybot)
+    deploymentId
+    status (https://developer.github.com/v4/enum/deploymentstatusstate/)
+    """
+    http_request = False
+    data = event
+    logging.info(data)
+    if 'body' in data:
+        http_request = True
+        data = json.loads(event['body'])
+
+    # if 'repository' not in data:
+    #     logging.error("Validation Failed")
+    #     raise Exception("Couldn't add a status to the deployment.")
+    #     return
+
+    # try:
+    #     (username, repository) = data['repository'].split('/')
+    # except ValueError as e:
+    #     logging.error("Validation Failed")
+    #     raise Exception("Couldn't add a status to the deployment.")
+    #     return
+
+    if 'deploymentId' not in data:
+        logging.error("no deploymentId")
+        raise Exception("Couldn't add a status to the deployment.")
+        return
+
+    if 'status' not in data:
+        logging.error("no status")
+        raise Exception("Couldn't add a status to the deployment.")
+        return
+
+    status = data['status'].upper()
+    if data['status'] not in ('ERROR', 'FAILURE', 'INACTIVE', 'PENDING', 'SUCCESS'):
+        logging.error("status string not valid")
+        raise Exception("Couldn't add a status to the deployment.")
+        return
+    
+    success, item['id'] = create_deployment_status(deploymentId, status)
+
+    if success is True:
+        response_data = {
+            "deployment_id": item['id']
+        }
+    else:
+        response_data = {
+            "error_message": error_message
+        }
+    if http_request:
+        response = {
+            "statusCode": r.status_code,
+            "body": response_data
+        }
+    else:
+        response = response_data
+
+    return response
+
 
 
 def response(body=None, status=200):
