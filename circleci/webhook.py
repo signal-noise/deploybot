@@ -4,6 +4,7 @@ import os
 
 import boto3
 from boto3.dynamodb.conditions import Key
+lambda_client = boto3.client('lambda', region_name="eu-west-2",)
 
 logger = logging.getLogger()
 if logger.handlers:
