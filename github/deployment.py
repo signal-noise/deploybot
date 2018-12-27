@@ -403,7 +403,8 @@ def create(event, context):
     return response
 
 
-def create_status(event, context):    """
+def create_status(event, context):
+    """
     Endpoint for creating new statuses for GitHub Deployments. Designed to be triggered by another
     function but will work if triggered via HTTP or even locally/directly.
     Expects to be provided with
@@ -445,7 +446,7 @@ def create_status(event, context):    """
         logging.error("status string not valid")
         raise Exception("Couldn't add a status to the deployment.")
         return
-    
+
     success, item['id'] = create_deployment_status(deploymentId, status)
 
     if success is True:
@@ -465,7 +466,6 @@ def create_status(event, context):    """
         response = response_data
 
     return response
-
 
 
 def response(body=None, status=200):
