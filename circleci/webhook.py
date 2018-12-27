@@ -52,7 +52,7 @@ def receive(event, context):
             "deploymentId": dep['id'],
             "status": status,
             "logUrl": dep['build_url'],
-            "environmentUrl": 'https://google.com'  # @TODO URLs!
+            "environmentUrl": dep['url']
         }
         response = lambda_client.invoke(
             FunctionName="{}-github_deployment_create_status".format(
