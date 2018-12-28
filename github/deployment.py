@@ -133,7 +133,6 @@ def get_create_deployment_status_mutation(mutation_vars):
         mutation {
             createDeploymentStatus(
                 input: {
-                    autoInactive: true,
                     deploymentId: "$deploymentId",
                     state: $state
     """
@@ -257,6 +256,20 @@ def create_deployment_status(deploymentId, status, logUrl=None, environmentUrl=N
     #     return (False, json_data['errors'][0]['message'])
 
 
+def get_url_for_env(repo, env, prNumber=None):
+    table = dynamodb.Table(os.environ['DYNAMODB_TABLE_PROJECT'])
+    entries = table.scan()
+    for entry in entries['Items']:
+        if entry['repository'] == repo:
+            if 'setting_url' in entry and env in entry['setting_url']:
+                return "https://{}".format(entry['setting_url'][env])
+            elif 'setting_baseurl' in entry:
+                if env == 'pr':
+                    env = '{}{}'.format(env, prNumber)
+                return "https://{}.{}".format(env, entry['setting_baseurl'])
+    return None
+
+
 def get_installation_token():
     jwt = generate_jwt()
 
@@ -354,6 +367,8 @@ def create(event, context):
     if env == 'pr':
         ids['refId'] = ids['prHeadRefId']
 
+    url = get_url_for_env(data['repository'], env, prNumber)
+
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
     timestamp = int(time.mktime(datetime.now().timetuple()))
 
@@ -363,7 +378,7 @@ def create(event, context):
         KeyConditionExpression=Key('repository').eq(
             data['repository']) & Key('commit_sha').eq(data['commit_sha'])
     )
-    if result['Count'] > 0:
+    if result['Count'] > 0 and result['Items'][0]['environment'] == env:
         logging.info('found existing record in table: {}'.format(result))
         item = result['Items'][0]
         item['updatedAt'] = timestamp
@@ -379,6 +394,7 @@ def create(event, context):
             'commit_sha': data['commit_sha'],
             'repo_github_id': ids['repoId'],
             'ref_github_id': ids['refId'],
+            'url': url,
             'createdAt': timestamp,
             'updatedAt': timestamp,
         }
@@ -392,7 +408,7 @@ def create(event, context):
             item['pr'] = data['number']
 
     success, item['id'] = create_deployment(
-        ids['repoId'], ids['refId'], env, prNumber=prNumber)
+        ids['repoId'], ids['refId'], env, prNumber=prNumber, url=url)
 
     if success is True:
         item['status'] = 'complete'

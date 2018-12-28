@@ -137,12 +137,17 @@ def deployment(data=None):
               if 'payload' in data['deployment']
               and 'prNumber' in data['deployment']['payload']
               else None)
+    url = (data['deployment']['payload']['prNumber']
+           if 'payload' in data['deployment']
+           and 'url' in data['deployment']['payload']
+           else None)
     create_circleci_deployment(
         repository=data['repository']['full_name'],
         environment=data['deployment']['environment'],
         ref=data['deployment']['ref'],
         commit_sha=data['deployment']['sha'],
-        number=number
+        number=number,
+        url=url
     )
     return
 
@@ -154,7 +159,7 @@ def deployment(data=None):
 #
 
 
-def create_circleci_deployment(repository, environment, ref, commit_sha, number=None):
+def create_circleci_deployment(repository, environment, ref, commit_sha, number=None, url=None):
     """
     Creates all required params and triggers function
     """
@@ -172,11 +177,12 @@ def create_circleci_deployment(repository, environment, ref, commit_sha, number=
         payload['tag'] = payload['version'] = ref
     else:
         payload['revision'] = commit_sha
-        if environment == 'pr':
-            payload['subdomain'] = 'pr{}'.format(number)
-            payload['version'] = 'pr{}-{}'.format(number, commit_sha)
-        else:
-            payload['subdomain'] = environment
+        payload['subdomain'] = environment
+
+    if number is not None:
+        payload['number'] = number
+    if url is not None:
+        payload['url'] = url
 
     logging.info('calling cci trigger with {}'.format(payload))
     response = trigger_circleci_trigger(payload)

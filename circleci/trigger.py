@@ -64,6 +64,8 @@ def send(event, context):
         payload['tag'] = data['tag']
     if 'subdomain' in data:
         payload["build_parameters"]["SUBDOMAIN"] = data['subdomain']
+    if 'url' in data:
+        payload["build_parameters"]["URL"] = data['url']
 
     # https://circleci.com/docs/api/#trigger-a-new-job
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
