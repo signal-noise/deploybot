@@ -261,12 +261,15 @@ def get_url_for_env(repo, env, prNumber=None):
     entries = table.scan()
     for entry in entries['Items']:
         if entry['repository'] == repo:
+            logging.info('get_url found db item {}'.format(entry))
             if 'setting_url' in entry and env in entry['setting_url']:
                 return "https://{}".format(entry['setting_url'][env])
             elif 'setting_baseurl' in entry:
-                if env == 'pr':
+                if env[0:2] == 'pr' and prNumber is not None:
                     env = '{}{}'.format(env, prNumber)
                 return "https://{}.{}".format(env, entry['setting_baseurl'])
+            logging.warn("No URL setting found for repo {}".format(repo))
+    logging.error("No repo {} found in DB for get_url".format(repo))
     return None
 
 
