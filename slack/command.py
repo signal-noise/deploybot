@@ -20,8 +20,8 @@ FN_RESPONSE_HELP = ("There are a few things you can ask me to do. "
                     "There's also `%s reset` if you want to start over on this channel's configuration." % (COMMAND, COMMAND, COMMAND, COMMAND, COMMAND))
 FN_RESPONSE_SET = ("Call this with two or three arguments; e.g. `%s set baseurl test.com`, or `%s set URL preview preview.test.com`. "
                    "Settings you can set here are: \n"
-                   "- `baseurl`: if your PR environment is at `pr27.test.com`, this is `test.com`. THis will be used to create all environment URLs not explicitly specified\n"
-                   "- `url`: A URL specific to an environment, to override the `environment.baseurl` rule. You must call this with the environment name and then the FQDN as above." % (COMMAND, COMMAND))
+                   "- `baseurl`: Actually a domain: if your PR environment is at `pr27.test.com`, this is `test.com`. This will be used to create all environment URLs not explicitly specified\n"
+                   "- `url`: A domain specific to an environment, to override the `environment.baseurl` rule. You must call this with the environment name and then the FQDN as above. Please don't include protocol but DO ensure HTTPS is supported." % (COMMAND, COMMAND))
 FN_RESPONSE_SET_CONFIRM = "Great, I've set %s to %s."
 FN_RESPONSE_UNSET = "Call this with the one or two arguments you called `set` with, and no value part - e.g. `%s unset baseurl`" % COMMAND
 FN_RESPONSE_CONFIG_EXISTS = "This channel is currently set up for `%s`. Some GitHub users may not be connected."
@@ -101,6 +101,8 @@ def set(text, context):
         }
         val_type = "M"
 
+    setting = 'setting_{}'.format(setting)
+
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE_PROJECT'])
     entries = table.scan()
     for entry in entries['Items']:
@@ -122,7 +124,7 @@ def set(text, context):
                 },
                 ReturnValues="ALL_NEW"
             )
-            return slack_response(FN_RESPONSE_SET_CONFIRM % (setting, " ".join(parts[1::])))
+            return slack_response(FN_RESPONSE_SET_CONFIRM % (setting[8:], " ".join(parts[1::])))
 
     return slack_response(ERR_SET)
 
@@ -150,6 +152,8 @@ def unset(text, context):
             return slack_response(ERR_SET_SETTING_3_ARGS + FN_RESPONSE_UNSET)
         val_type = "M"
 
+    setting = 'setting_{}'.format(setting)
+
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE_PROJECT'])
     entries = table.scan()
     for entry in entries['Items']:
@@ -176,7 +180,7 @@ def unset(text, context):
                 ExpressionAttributeValues=attrs,
                 ReturnValues="ALL_NEW"
             )
-            return slack_response(FN_RESPONSE_SET_CONFIRM % (setting, " ".join(parts[1::])))
+            return slack_response(FN_RESPONSE_SET_CONFIRM % (setting[8:], " ".join(parts[1::])))
 
     return slack_response(FN_RESPONSE_UNSET)
 

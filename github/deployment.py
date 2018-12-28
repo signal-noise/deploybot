@@ -257,15 +257,17 @@ def create_deployment_status(deploymentId, status, logUrl=None, environmentUrl=N
     #     return (False, json_data['errors'][0]['message'])
 
 
-def get_url_for_env(repo, env):
+def get_url_for_env(repo, env, prNumber=None):
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE_PROJECT'])
     entries = table.scan()
     for entry in entries['Items']:
         if entry['repository'] == repo:
-            if 'url' in entry and env in entry['url']:
-                return "https://{}".format(entry['url'][env])
-            elif 'baseurl' in entry:
-                return "https://{}.{}".format(env, entry['baseurl'])
+            if 'setting_url' in entry and env in entry['setting_url']:
+                return "https://{}".format(entry['setting_url'][env])
+            elif 'setting_baseurl' in entry:
+                if env == 'pr':
+                    env = '{}{}'.format(env, prNumber)
+                return "https://{}.{}".format(env, entry['setting_baseurl'])
     return None
 
 
@@ -366,7 +368,7 @@ def create(event, context):
     if env == 'pr':
         ids['refId'] = ids['prHeadRefId']
 
-    url = get_url_for_env(data['repository'], env)
+    url = get_url_for_env(data['repository'], env, prNumber)
 
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE_DEPLOYMENT'])
     timestamp = int(time.mktime(datetime.now().timetuple()))
