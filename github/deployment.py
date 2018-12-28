@@ -263,9 +263,9 @@ def get_url_for_env(repo, env):
     for entry in entries['Items']:
         if entry['repository'] == repo:
             if 'url' in entry and env in entry['url']:
-                return entry['url'][env]
+                return "https://{}".format(entry['url'][env])
             elif 'baseurl' in entry:
-                return "{}.{}".format(env, entry['baseurl'])
+                return "https://{}.{}".format(env, entry['baseurl'])
     return None
 
 
@@ -407,7 +407,7 @@ def create(event, context):
             item['pr'] = data['number']
 
     success, item['id'] = create_deployment(
-        ids['repoId'], ids['refId'], env, prNumber=prNumber)
+        ids['repoId'], ids['refId'], env, prNumber=prNumber, url=url)
 
     if success is True:
         item['status'] = 'complete'
