@@ -133,7 +133,6 @@ def get_create_deployment_status_mutation(mutation_vars):
         mutation {
             createDeploymentStatus(
                 input: {
-                    autoInactive: true,
                     deploymentId: "$deploymentId",
                     state: $state
     """
