@@ -297,6 +297,16 @@ def bye(text, context):
     return slack_response(ERR_GOODBYE_NO_USER)
 
 
+def deploy(text, context):
+    """
+    Manually trigegrs a deployment to a specific environment
+    """
+    # validate env exists
+    # validate rules for ref / env
+    # trigger deployment
+    logging.info(text)
+
+
 #
 #
 # Shared Slack functionality
@@ -426,7 +436,7 @@ def receive(event, context):
         # logging.info('got data "%s"="%s"'%(key, value))
         data[key] = get_form_variable_value(value)
 
-    if data['command'] not in ['%s' % COMMAND]:
+    if data['command'] not in [COMMAND, 'deploy']:
         logging.error("Unexpected command")
         return response({"message": "Unexpected command"}, 500)
 
@@ -443,7 +453,10 @@ def receive(event, context):
         "trigger_id": data['trigger_id'],
     }
 
-    return call_function(data['text'], context)
+    if data['command'] == COMMAND:
+        return call_function(data['text'], context)
+    else:
+        return call_function("{} {}".format(data['command'], data['text']), context)
 
 
 def response(body, status=200):
