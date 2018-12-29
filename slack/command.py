@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from urlparse import parse_qs
 
 import boto3
+lambda_client = boto3.client('lambda', region_name="eu-west-2",)
 
 COMMAND = '/cimon'
 
@@ -32,6 +33,7 @@ FN_RESPONSE_RESET_SUCCESS = "Removed this channel's configuration for `%s`"
 FN_REPSONSE_HELLO = "Hi! Who are you when you're not here?"
 FN_REPSONSE_HELLO_NO_UNKNOWNS = "Hi! Either we already know each other or you don't have access to the repo this channel is set up for."
 FN_RESPONSE_GOODBYE = "Who did you say you were again? (Command successful)"
+FN_RESPONE_DEPLOY = "Deployment started!"
 PROMPT_USER_BUTTONS = "Select your GitHub username so we can connect it to your Slack username. If you don't see your name you don't have access to the repository"
 
 ERR_NO_FUNC_FOUND = "I didn't understand that, try `%s help`. This may also be an error with my code." % COMMAND
@@ -48,6 +50,10 @@ ERR_SETUP_CHANNEL_EXISTS = "This channel is already setup for a different repo. 
 ERR_RESET_FAILURE = "No config found for this channel"
 ERR_USER_BUTTON_FALLBACK = "You are unable to introduce yourself for some reason. Sorry."
 ERR_GOODBYE_NO_USER = "Nothing to forget; I couldn't find you in the DB."
+ERR_DEPLOY_ARGS = "You must specify what and where to deploy, as `deploy <branch-or-tag> to <environment>`"
+ERR_DEPLOY_VALID_ENV = "I don't recognise that environment name"
+ERR_DEPLOY_REFENV_VALIDATION = "That environment doesn't get built from that ref according to the supported workflow. "
+ERR_DEPLOY_REMOTE = "Something went wrong."
 
 SLACK_SIGNING_SECRET_VERSION = "v0"
 
@@ -301,10 +307,55 @@ def deploy(text, context):
     """
     Manually trigegrs a deployment to a specific environment
     """
-    # validate env exists
-    # validate rules for ref / env
-    # trigger deployment
-    logging.info(text)
+    parts = text.split()
+    if len(parts) != 3:
+        return slack_response(ERR_DEPLOY_ARGS)
+
+    ref = parts[0].lower()
+    env = parts[2].lower()
+
+    if env not in ('preview', 'test', 'staging', 'production'):
+        # no force-building PRs
+        return slack_response(ERR_DEPLOY_VALID_ENV)
+
+    if (
+        (env == 'production' and ref[0:1] != 'v') or
+        (env == 'staging' and ref[0:7] != 'release') or
+        (env == 'test' and ref[0:7] != 'release') or
+            (env == 'preview' and ref != 'master')):
+        return slack_response(ERR_DEPLOY_REFENV_VALIDATION)
+
+    logging.info('Manually deploying {} to {}'.format(ref, env))
+
+    # get the required bits: commit_sha, repo
+    table = dynamodb.Table(os.environ['DYNAMODB_TABLE_PROJECT'])
+    entries = table.scan()
+    for entry in entries['Items']:
+        if entry['slack_channelid'] == context['channel_id']:
+            repository = entry['repository']
+            break
+
+    payload = {
+        'repository': repository,
+        'environment': env,
+        # forces creating new deployment, this will mean no retries if statuses aren't fixed
+        'commit_sha': int(time.mktime(datetime.now().timetuple())),
+        'ref': ref,
+        'description': 'Manually triggered from Slack via SN Deploybot with command `{}`'.format(text),
+    }
+    response = lambda_client.invoke(
+        FunctionName="{}-github_deployment_create".format(
+            os.environ['FUNCTION_PREFIX']),
+        InvocationType='RequestResponse',
+        Payload=json.dumps(payload)
+    )
+    string_response = response["Payload"].read().decode('utf-8')
+    parsed_response = json.loads(string_response)
+    if 'errorType' in parsed_response:
+        return slack_response("{} {}".format(ERR_DEPLOY_REMOTE, parsed_response['errorMessage']))
+
+    logging.info(parsed_response)
+    return parsed_response
 
 
 #
@@ -436,13 +487,14 @@ def receive(event, context):
         # logging.info('got data "%s"="%s"'%(key, value))
         data[key] = get_form_variable_value(value)
 
-    if data['command'] not in [COMMAND, 'deploy']:
+    if data['command'] not in [COMMAND, '/deploy']:
         logging.error("Unexpected command")
         return response({"message": "Unexpected command"}, 500)
 
     if 'text' not in data or data['text'] == "":
         logging.warn("No text in command")
         data['text'] = 'help'
+        data['command'] = COMMAND
 
     context = {
         "channel_id": data['channel_id'],
@@ -456,7 +508,7 @@ def receive(event, context):
     if data['command'] == COMMAND:
         return call_function(data['text'], context)
     else:
-        return call_function("{} {}".format(data['command'], data['text']), context)
+        return call_function("{} {}".format(data['command'][1:], data['text']), context)
 
 
 def response(body, status=200):
