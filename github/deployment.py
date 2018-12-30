@@ -22,11 +22,14 @@ if logger.handlers:
 logging.basicConfig(level=logging.INFO)
 
 
-#
-#
-# GitHub GraphQL query generation functions
-#
-#
+class RefNotFoundException(Exception):
+    pass
+
+    #
+    #
+    # GitHub GraphQL query generation functions
+    #
+    #
 
 
 def get_repo_query(query_vars):
@@ -184,12 +187,15 @@ def get_github_ids(**args):
         'repoId': json_data['data']['repository']['id'],
         'defaultBranchRefId': json_data['data']['repository']['defaultBranchRef']['id']
     }
-    if 'refName' in args:
-        ids['refId'] = json_data['data']['repository']['ref']['id']
-    if 'prNumber' in args:
-        ids['prId'] = json_data['data']['repository']['pullRequest']['id']
-        ids['prHeadRefId'] = json_data['data']['repository']['pullRequest']['headRef']['id']
-        ids['prBaseRefId'] = json_data['data']['repository']['pullRequest']['baseRef']['id']
+    try:
+        if 'refName' in args:
+            ids['refId'] = json_data['data']['repository']['ref']['id']
+        if 'prNumber' in args:
+            ids['prId'] = json_data['data']['repository']['pullRequest']['id']
+            ids['prHeadRefId'] = json_data['data']['repository']['pullRequest']['headRef']['id']
+            ids['prBaseRefId'] = json_data['data']['repository']['pullRequest']['baseRef']['id']
+    except TypeError:
+        raise RefNotFoundException("Does that ref exist?")
     return ids
 
 
@@ -226,7 +232,7 @@ def create_deployment(repoId, refId, env, description=None, prNumber=None, url=N
         return (False, json_data['errors'][0]['message'])
 
 
-def create_deployment_status(deploymentId, status, logUrl=None, environmentUrl=None):
+def create_deployment_status(deploymentId, status, logUrl=None, environmentUrl=None, description=None):
     """
     Executes an API call based around the createdeploymentstatus mutation.
     """
@@ -238,6 +244,8 @@ def create_deployment_status(deploymentId, status, logUrl=None, environmentUrl=N
         payload['logUrl'] = logUrl
     if environmentUrl is not None:
         payload['environmentUrl'] = environmentUrl
+    if description is not None:
+        payload['description'] = description
     headers = {
         'Accept': 'application/vnd.github.flash-preview+json',
         'Content-Type': 'application/json',
@@ -261,12 +269,15 @@ def get_url_for_env(repo, env, prNumber=None):
     entries = table.scan()
     for entry in entries['Items']:
         if entry['repository'] == repo:
+            logging.info('get_url found db item {}'.format(entry))
             if 'setting_url' in entry and env in entry['setting_url']:
                 return "https://{}".format(entry['setting_url'][env])
             elif 'setting_baseurl' in entry:
-                if env == 'pr':
+                if env[0:2] == 'pr' and prNumber is not None:
                     env = '{}{}'.format(env, prNumber)
                 return "https://{}.{}".format(env, entry['setting_baseurl'])
+            logging.warn("No URL setting found for repo {}".format(repo))
+    logging.error("No repo {} found in DB for get_url".format(repo))
     return None
 
 
@@ -366,6 +377,7 @@ def create(event, context):
     ids = get_github_ids(**args)
     if env == 'pr':
         ids['refId'] = ids['prHeadRefId']
+    description = data['description'] if 'description' in data else None
 
     url = get_url_for_env(data['repository'], env, prNumber)
 
@@ -408,7 +420,13 @@ def create(event, context):
             item['pr'] = data['number']
 
     success, item['id'] = create_deployment(
-        ids['repoId'], ids['refId'], env, prNumber=prNumber, url=url)
+        ids['repoId'],
+        ids['refId'],
+        env,
+        prNumber=prNumber,
+        url=url,
+        description=description
+    )
 
     if success is True:
         item['status'] = 'complete'
