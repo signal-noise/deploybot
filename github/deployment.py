@@ -76,6 +76,28 @@ def get_repo_query(query_vars):
     return {'query': t.substitute(query_vars)}
 
 
+def get_commitsha_query(query_vars):
+    """
+    Builds a GraphQL query to get repo info including refs and
+    PR details if provided. The single param is a dict with the
+    following keys:
+    refName
+    """
+    query = """
+        query {
+            repository(owner:"$repoOwner", name:"$repoName") {
+                ref(qualifiedName:"$refName") {
+              		target {
+              		    oid
+              		}
+                },
+            }
+        }
+    """
+    t = Template(query)
+    return {'query': t.substitute(query_vars)}
+
+
 def get_create_deployment_mutation(mutation_vars):
     """
     Builds a GraphQL mutation to create a new deployment. The single param
@@ -194,6 +216,40 @@ def get_github_ids(**args):
             ids['prId'] = json_data['data']['repository']['pullRequest']['id']
             ids['prHeadRefId'] = json_data['data']['repository']['pullRequest']['headRef']['id']
             ids['prBaseRefId'] = json_data['data']['repository']['pullRequest']['baseRef']['id']
+    except TypeError:
+        raise RefNotFoundException("Does that ref exist?")
+    return ids
+
+
+def get_commitsha_for_ref(repoOwner, repoName, refName):
+    """
+    Executes an API call based around the repo info query, to return Commit SHA
+    of relevant Github objects.
+    refName
+    """
+    prefix = None
+    if refName[0:4] == 'refs':
+        parts = refName.split("/")
+        refName = "/".join(parts[2:])
+        prefix = "/".join(parts[:2])
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'bearer {}'.format(get_installation_token())
+    }
+    uri = GITHUB_GRAPHQL_URI
+    query_vars = {
+        'repoOwner': repoOwner,
+        'repoName': repoName,
+        'refName': refName
+    }
+    payload = get_commitsha_query(query_vars)
+    logging.info(payload)
+    r = requests.post(uri, data=json.dumps(payload), headers=headers)
+    json_data = r.json()
+    logging.info(json_data)
+
+    try:
+        return json_data['data']['repository']['ref']['target']['oid']
     except TypeError:
         raise RefNotFoundException("Does that ref exist?")
     return ids
@@ -343,8 +399,8 @@ def create(event, context):
         raise Exception("Couldn't trigger the deployment.")
         return
 
-    if 'commit_sha' not in data:
-        logging.error("no commit SHA")
+    if 'commit_sha' not in data and 'ref' not in data:
+        logging.error("no commit SHA, or ref to get one from")
         raise Exception("Couldn't trigger the deployment.")
         return
 
@@ -363,6 +419,11 @@ def create(event, context):
         logging.error("no valid ref")
         raise Exception("Couldn't trigger the deployment.")
         return
+
+    if 'commit_sha' in data:
+        commit_sha = data['commit_sha']
+    else:
+        commit_sha = get_commitsha_for_ref(username, repository, data['ref'])
 
     args = {
         "repoOwner": username,
@@ -388,22 +449,27 @@ def create(event, context):
     result = table.query(
         IndexName=os.environ['DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT'],
         KeyConditionExpression=Key('repository').eq(
-            data['repository']) & Key('commit_sha').eq(data['commit_sha'])
+            data['repository']) & Key('commit_sha').eq(commit_sha)
     )
-    if result['Count'] > 0 and result['Items'][0]['environment'] == env:
-        logging.info('found existing record in table: {}'.format(result))
-        item = result['Items'][0]
-        item['updatedAt'] = timestamp
-        # we're going to write a new record in a moment so we'll delete this now...
-        table.delete_item(Key={
-            'repository': item['repository'],
-            'id': item['id']
-        })
+    # if result['Count'] > 0:
+    for i in result['Items']:
+        if i['environment'] == env:
+            item = i
+            logging.info('found existing record in table: {}'.format(item))
+            item['updatedAt'] = timestamp
+            # we're going to write a new record in a moment so we'll delete this now...
+            table.delete_item(Key={
+                'repository': item['repository'],
+                'id': item['id']
+            })
+            break
     else:
+        logging.info('no record with matching repo, commit and env, all results = {}'.format(result))
+    # else:
         item = {
             'repository': data['repository'],
             'environment': env,
-            'commit_sha': data['commit_sha'],
+            'commit_sha': commit_sha,
             'repo_github_id': ids['repoId'],
             'ref_github_id': ids['refId'],
             'url': url,
