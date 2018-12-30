@@ -197,9 +197,13 @@ def create_circleci_deployment(repository, environment, ref, commit_sha, number=
         raise Exception("DB record not found where expected")
 
     for i in result['Items']:
-        if i['environment'] == environment:
+        if (i['environment'] == environment or 
+            (i['environment'] == 'pr' and environment[:2] == 'pr')):
             item = i
             break
+    else:
+        logging.error("Couldn't find row for deployment, results were {}".format(result))
+        raise Exception("DB record not found where expected")
 
     item['updatedAt'] = int(time.mktime(datetime.now().timetuple()))
     logging.info('updating record: {} with num {} and url {}'.format(
