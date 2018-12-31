@@ -15,12 +15,13 @@ Triggers can also be manually activated via the Slack channel; anyone on the cha
 ### Supported workflows
 
 As this project is in very early days, the workflow is pretty hardcoded right now. It's based on [GitHub Flow](https://guides.github.com/introduction/flow/), with a couple of extra items; this is all the moments a deployment is triggered:
-* As soon as a PR is created the `headRef` of that PR is built, and the build is linked in a comment on the PR
-* Each subsequent push to a branch with an open PR triggers a rebuild of that `PR` environment
-* Each push to `master` (usually a merge from a PR) triggers a build of the `Preview` environment
-* Each push to any branch with a name starting with `release` (e.g. `release/v1.3`) triggers a build to the `test` environment
-* Manual triggers from Slack can trigger builds to `staging` of anything that's already been built to `test`
-* Pushing tags with names starting with a `v` (e.g. `v1.3`) will trigger a build to the `production` environment
+
+- As soon as a PR is created the `headRef` of that PR is built, and the build is linked in a comment on the PR
+- Each subsequent push to a branch with an open PR triggers a rebuild of that `PR` environment
+- Each push to `master` (usually a merge from a PR) triggers a build of the `Preview` environment
+- Each push to any branch with a name starting with `release` (e.g. `release/v1.3`) triggers a build to the `test` environment
+- Manual triggers from Slack can trigger builds to `staging` of anything that's already been built to `test`
+- Pushing tags with names starting with a `v` (e.g. `v1.3`) will trigger a build to the `production` environment
 
 ## Usage
 
@@ -38,7 +39,7 @@ In a slack channel, typing `/cimon setup <username>/<repository>` will start the
 
 ## Installation
 
-Set up an AWS account, following the [Serverless documentation](https://serverless.com/framework/docs/providers/aws/guide/credentials/). Get the Access Key and Secret, and save them to your `~.aws/credentials` file under the `deploybot` profile if you intend to deploy manually (recommended). Uncomment the resources section of `serverless.yml` and deploy so that you have live endpoints, then re-comment the DynamoDB tables, as you can't redeploy over the top of them. You'll need to manually create the GSI for the deployments table defined in the YAML file as that doesn't seem to be working via serverless; you'll also need to explicitly allow the created Role to access the index via IAM.
+Set up an AWS account, following the [Serverless documentation](https://serverless.com/framework/docs/providers/aws/guide/credentials/). Get the Access Key and Secret, and save them to your `~.aws/credentials` file under the `deploybot` profile if you intend to deploy manually (recommended). Use the separate [CloudFormation template](./dynamoDB_cf.template) file to install the DynamoDB tables (note that the tablenames are all generated as though `service` is `deploybot` and `stage` is `prod`). Run a serverless deployment so you have the endpoints you'll need when setting up other services.
 
 Set up a GitHub app for your organisation; navigate to your organisation settings, go to GitHub Apps and create a new one. Fill in the Name, Description and Homepage fields, then add the endpoint for your `github_event` function to the Webhook URL field. You then need to install it; ideally to all repositories. You'll need to get the App's `ID` and `Private Key` as well as its `Installation ID`.
 
