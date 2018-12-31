@@ -39,7 +39,7 @@ In a slack channel, typing `/cimon setup <username>/<repository>` will start the
 
 ## Installation
 
-Set up an AWS account, following the [Serverless documentation](https://serverless.com/framework/docs/providers/aws/guide/credentials/). Get the Access Key and Secret, and save them to your `~.aws/credentials` file under the `deploybot` profile if you intend to deploy manually (recommended). Use the separate [CloudFormation template](./dynamoDB_cf.template) file to install the DynamoDB tables (note that the tablenames are all generated as though `service` is `deploybot` and `stage` is `prod`).
+Set up an AWS account, following the [Serverless documentation](https://serverless.com/framework/docs/providers/aws/guide/credentials/). Get the Access Key and Secret, and save them to your `~.aws/credentials` file under the `deploybot` profile if you intend to deploy manually (recommended). Use the separate [CloudFormation template](./dynamoDB_cf.template) file to setup the DynamoDB tables (note that the tablenames are all generated as though `service` is `deploybot` and `stage` is `prod`).
 
 Copy `.env.sample` to `.env` and fill in all the variables as you go. If you want to do local deployments you'll need to `source` this file before doing anything else; if not you'll need to copy all the details to CircleCI environment variables.
 
