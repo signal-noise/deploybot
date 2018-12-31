@@ -1,7 +1,8 @@
 # Serverless
 .serverless
 .env
-.env.dev
+.env*
+-.env.sample
 tmp
 .coveralls.yml
 
