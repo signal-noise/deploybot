@@ -5,22 +5,22 @@ frameworkVersion: ">=1.1.0 <2.0.0"
 package:
   include:
     - common/**
-    - show.py
-    - catfacts.json
   exclude:
     - requirements.txt
     - serverless.yml
     - README.md
     - LICENSE
+    - docs/**
     - outputs/**
 
 provider:
   name: aws
   profile: deploybot
-  stage: dev
+  stage: ${env:STAGE, 'prod'}
   region: eu-west-2
-  runtime: python2.7
+  runtime: python3.7
   environment:
+    COMMAND: ${env:COMMAND, '/cimon'}
     FUNCTION_PREFIX: ${self:service}-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_PROJECT: ${self:service}-project-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_USER: ${self:service}-user-${opt:stage, self:provider.stage}

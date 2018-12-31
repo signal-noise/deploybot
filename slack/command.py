@@ -12,7 +12,7 @@ from urlparse import parse_qs
 import boto3
 lambda_client = boto3.client('lambda', region_name="eu-west-2",)
 
-COMMAND = '/cimon'
+COMMAND = os.environ['COMMAND']
 
 FN_RESPONSE_HELP = ("There are a few things you can ask me to do. "
                     "Try `%s setup signal-noise/reponame` to get started, "
