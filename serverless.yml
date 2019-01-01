@@ -23,9 +23,9 @@ provider:
     COMMAND: ${env:COMMAND, '/cimon'}
     FUNCTION_PREFIX: ${self:service}-${opt:stage, self:provider.stage}
     SLS_AWS_REGION: ${env:SLS_AWS_REGION}
-    DYNAMODB_TABLE_PROJECT: ${self:service}-project-${opt:stage, self:provider.stage}
-    DYNAMODB_TABLE_USER: ${self:service}-user-${opt:stage, self:provider.stage}
-    DYNAMODB_TABLE_DEPLOYMENT: ${self:service}-deployment-${opt:stage, self:provider.stage}
+    DYNAMODB_TABLE_PROJECT: ${env:DYNAMODB_TABLE_PROJECT}
+    DYNAMODB_TABLE_USER: ${env:DYNAMODB_TABLE_USER}
+    DYNAMODB_TABLE_DEPLOYMENT: ${env:DYNAMODB_TABLE_DEPLOYMENT}
     DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT: repository-commit-index
     DYNAMODB_TABLE_DEPLOYMENT_BYBUILDNUM: repository-build_number-index
     SLACK_WEBHOOK_URL: ${env:SLACK_WEBHOOK_URL}
