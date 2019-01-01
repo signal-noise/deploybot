@@ -9,22 +9,23 @@ import boto3
 import time
 from datetime import datetime, timedelta
 from botocore.vendored import requests
-from urlparse import parse_qs
+from urllib.parse import parse_qs
 
-FN_RESPONSE_USER_CREATED="Thanks, now I can @ you properly. If there were any other buttons available you should encourage the other channel members to say `hello` to me as well."
+FN_RESPONSE_USER_CREATED = "Thanks, now I can @ you properly. If there were any other buttons available you should encourage the other channel members to say `hello` to me as well."
 
-ERR_GITHUB_USER_EXISTS="Hm. I have that GitHub username registered to someone else. No action taken, but you can say `goodbye` if you like."
-ERR_SLACK_USER_EXISTS="I have you registered against another GitHub username. No action taken, you can say `goodbye` if you like."
+ERR_GITHUB_USER_EXISTS = "Hm. I have that GitHub username registered to someone else. No action taken, but you can say `goodbye` if you like."
+ERR_SLACK_USER_EXISTS = "I have you registered against another GitHub username. No action taken, you can say `goodbye` if you like."
 
-SLACK_SIGNING_SECRET_VERSION="v0"
+SLACK_SIGNING_SECRET_VERSION = "v0"
 
-dynamodb = boto3.resource('dynamodb')
+dynamodb = boto3.resource('dynamodb', region_name=os.environ['SLS_AWS_REGION'])
 
 logger = logging.getLogger()
 if logger.handlers:
     for handler in logger.handlers:
         logger.removeHandler(handler)
 logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 
 def github_username(gh_user, data=None):
@@ -41,12 +42,13 @@ def github_username(gh_user, data=None):
         'createdAt': timestamp,
         'updatedAt': timestamp,
     }
-    logging.info("item = {%s}" % ', '.join("%s: %r" % (key,val) for (key,val) in item.iteritems()))
-        
+    logging.info("item = {%s}" % ', '.join("%s: %r" % (key, val)
+                                           for (key, val) in item.iteritems()))
+
     entries = user_table.scan()
 
     for entry in entries['Items']:
-        if (entry['github_username'] == item['github_username'] 
+        if (entry['github_username'] == item['github_username']
                 and entry['slack_userid'] == item['slack_userid']):
             return slack_response(FN_RESPONSE_USER_CREATED)
 
@@ -83,7 +85,7 @@ def receive(event, context):
     if 'actions' not in data:
         logging.error("Unexpected event")
         return response({"message": "Unexpected event"}, 500)
-        
+
     f = data['actions'][0]['name']
     p = data['actions'][0]['value']
     return getattr(sys.modules[__name__], f)(p, data=data)
@@ -96,7 +98,7 @@ def response(body, status=200):
     response = {
         "statusCode": int(status),
         "isBase64Encoded": False,
-        "headers": { 
+        "headers": {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
         },
@@ -142,7 +144,7 @@ def is_request_valid(event):
         digestmod=hashlib.sha256
     ).hexdigest()
     signature = '%s=%s' % (SLACK_SIGNING_SECRET_VERSION, signature)
-    
+
     return hmac.compare_digest(str(signature), str(slack_signature))
 
 

@@ -7,10 +7,9 @@ import sys
 import time
 # import traceback
 from datetime import datetime, timedelta
-from urlparse import parse_qs
+from urllib.parse import parse_qs
 
 import boto3
-lambda_client = boto3.client('lambda', region_name="eu-west-2",)
 
 COMMAND = os.environ['COMMAND']
 
@@ -57,14 +56,15 @@ ERR_DEPLOY_REMOTE = "Something went wrong: "
 
 SLACK_SIGNING_SECRET_VERSION = "v0"
 
-dynamodb = boto3.resource('dynamodb')
-lambda_client = boto3.client('lambda', region_name="eu-west-2",)
+dynamodb = boto3.resource('dynamodb', region_name=os.environ['SLS_AWS_REGION'])
+lambda_client = boto3.client('lambda', region_name=os.environ['SLS_AWS_REGION'])
 
 logger = logging.getLogger()
 if logger.handlers:
     for handler in logger.handlers:
         logger.removeHandler(handler)
 logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 #
 #
@@ -489,6 +489,7 @@ def receive(event, context):
         return response({"message": "Authentication Failed"}, 401)
 
     d = parse_qs(event['body'])
+    logging.info(d)
 
     data = {}
     for key, value in d.iteritems():
@@ -561,5 +562,4 @@ def get_form_variable_value(form_var):
 
 
 if __name__ == "__main__":
-    create({'repository': 'signal-noise/deploybot',
-            'environment': 'pr', 'number': 13}, '')
+    receive({'body': '?command=/cimon&text=help'}, '')

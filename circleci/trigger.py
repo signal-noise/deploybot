@@ -14,6 +14,7 @@ if logger.handlers:
     for handler in logger.handlers:
         logger.removeHandler(handler)
 logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 
 def send(event, context):
@@ -106,4 +107,4 @@ def response(body=None, status=200):
 
 if __name__ == "__main__":
     send({'repository': 'signal-noise/deploybot',
-          'revision': '6366aefd6dfa0891f89417edf88844667e5f2d55', 'environment': 'test'}, '')
+          'revision': '6366aefd6dfa0891f89417edf88844667e5f2d55', 'environment': 'test', 'version': '-test-'}, '')

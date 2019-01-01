@@ -7,9 +7,9 @@ import time
 import jwt
 from botocore.vendored import requests
 
-GITHUB_GRAPHQL_URI="https://api.github.com/graphql"
+GITHUB_GRAPHQL_URI = "https://api.github.com/graphql"
 
-GRAPHQL_QUERY_COLLABORATORS="""
+GRAPHQL_QUERY_COLLABORATORS = """
     query {
         repository(owner:\"%s\", name:\"%s\") { 
             collaborators (first:100) { 
@@ -21,12 +21,12 @@ GRAPHQL_QUERY_COLLABORATORS="""
     }
 """
 
-
 logger = logging.getLogger()
 if logger.handlers:
     for handler in logger.handlers:
         logger.removeHandler(handler)
 logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 
 def get(event, context):
@@ -49,7 +49,7 @@ def get(event, context):
 
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'bearer {}'.format(get_installation_token()) 
+        'Authorization': 'bearer {}'.format(get_installation_token())
     }
     uri = 'https://api.github.com/graphql'
     payload = {
@@ -62,7 +62,7 @@ def get(event, context):
     response_data = {
         "count": json_data['data']['repository']['collaborators']['totalCount'],
         "collaborators": list(map(
-            lambda x: x['login'], 
+            lambda x: x['login'],
             json_data['data']['repository']['collaborators']['nodes']
         ))
     }
@@ -85,7 +85,7 @@ def response(body=None, status=200):
     response = {
         "statusCode": int(status),
         "isBase64Encoded": False,
-        "headers": { 
+        "headers": {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
         },
@@ -118,15 +118,16 @@ def get_installation_token():
 
     headers = {
         'Accept': 'application/vnd.github.machine-man-preview+json',
-        'Authorization': 'Bearer {}'.format(jwt) 
+        'Authorization': 'Bearer {}'.format(jwt)
     }
-    uri = 'https://api.github.com/app/installations/{}/access_tokens'.format(os.environ['GITHUB_APP_INSTALLATIONID'])
+    uri = 'https://api.github.com/app/installations/{}/access_tokens'.format(
+        os.environ['GITHUB_APP_INSTALLATIONID'])
 
     r = requests.post(uri, headers=headers)
     json_data = r.json()
- 
+
     return json_data['token']
 
 
 if __name__ == "__main__":
-    send({'repository': 'signal-noise/deploybot'}, '')
+    get({'repository': 'signal-noise/deploybot'}, '')

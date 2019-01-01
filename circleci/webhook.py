@@ -4,15 +4,16 @@ import os
 
 import boto3
 from boto3.dynamodb.conditions import Key
-lambda_client = boto3.client('lambda', region_name="eu-west-2",)
+
+dynamodb = boto3.resource('dynamodb', region_name=os.environ['SLS_AWS_REGION'])
+lambda_client = boto3.client('lambda', region_name=os.environ['SLS_AWS_REGION'])
 
 logger = logging.getLogger()
 if logger.handlers:
     for handler in logger.handlers:
         logger.removeHandler(handler)
 logging.basicConfig(level=logging.INFO)
-
-dynamodb = boto3.resource('dynamodb')
+logger.setLevel(logging.INFO)
 
 
 def receive(event, context):

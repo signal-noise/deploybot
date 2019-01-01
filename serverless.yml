@@ -16,12 +16,13 @@ package:
 provider:
   name: aws
   profile: deploybot
-  stage: ${env:STAGE, 'prod'}
-  region: eu-west-2
   runtime: python3.7
+  stage: ${env:STAGE, 'prod'}
+  region: ${env:SLS_AWS_REGION}
   environment:
     COMMAND: ${env:COMMAND, '/cimon'}
     FUNCTION_PREFIX: ${self:service}-${opt:stage, self:provider.stage}
+    SLS_AWS_REGION: ${env:SLS_AWS_REGION}
     DYNAMODB_TABLE_PROJECT: ${self:service}-project-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_USER: ${self:service}-user-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE_DEPLOYMENT: ${self:service}-deployment-${opt:stage, self:provider.stage}
@@ -95,12 +96,12 @@ functions:
           cors: true
   slack_message:
     handler: slack/message.send
+# plugins:
+#   - serverless-python-requirements
 
-plugins:
-  - serverless-python-requirements
-
-custom:
-  pythonRequirements:
-    dockerizePip: "non-linux"
-    # useDownloadCache: true
-    # useStaticCache: true
+# custom:
+#   pythonRequirements:
+#     dockerizePip: "non-linux"
+#     # pythonBin: $(which python3)
+#     # useDownloadCache: true
+#     # useStaticCache: true

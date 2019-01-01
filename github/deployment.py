@@ -10,16 +10,17 @@ from boto3.dynamodb.conditions import Key
 import jwt
 from botocore.vendored import requests
 
-dynamodb = boto3.resource('dynamodb')
-
 GITHUB_GRAPHQL_URI = "https://api.github.com/graphql"
 
+
+dynamodb = boto3.resource('dynamodb', region_name=os.environ['SLS_AWS_REGION'])
 
 logger = logging.getLogger()
 if logger.handlers:
     for handler in logger.handlers:
         logger.removeHandler(handler)
 logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 
 class RefNotFoundException(Exception):
@@ -217,6 +218,7 @@ def get_github_ids(**args):
             ids['prHeadRefId'] = json_data['data']['repository']['pullRequest']['headRef']['id']
             ids['prBaseRefId'] = json_data['data']['repository']['pullRequest']['baseRef']['id']
     except TypeError:
+        logging.info(json_data)
         raise RefNotFoundException("Does that ref exist?")
     return ids
 
@@ -353,11 +355,6 @@ def get_installation_token():
     return json_data['token']
 
 
-if __name__ == "__main__":
-    create({'repository': 'signal-noise/deploybot',
-            'environment': 'pr', 'number': 13}, '')
-
-
 #
 #
 # Response logic
@@ -464,7 +461,8 @@ def create(event, context):
             })
             break
     else:
-        logging.info('no record with matching repo, commit and env, all results = {}'.format(result))
+        logging.info(
+            'no record with matching repo, commit and env, all results = {}'.format(result))
     # else:
         item = {
             'repository': data['repository'],
@@ -617,3 +615,8 @@ def generate_jwt():
         algorithm='RS256')
 
     return token.decode('utf-8')
+
+
+if __name__ == "__main__":
+    create({'repository': 'signal-noise/deploybot',
+            'environment': 'pr', 'number': 13, 'commit_sha': '880fae856cfd0e6c92f9e4f5e6991768c7c009c0'}, '')
