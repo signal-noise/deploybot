@@ -30,10 +30,10 @@ FN_RESPONSE_CONFIG_NOTEXISTS = "This channel hasn't got any configuration at the
 FN_RESPONSE_CONFIG_ALL_GH_KNOWN = "I know all the users oon this repository"
 FN_RESPONSE_SETUP = "Setting up `%s` in this channel. Note that you won't be able to use this channel for another project, or use that repo in another channel. You should run `set` to get your environment URLs configured."
 FN_RESPONSE_RESET_SUCCESS = "Removed this channel's configuration for `%s`"
-FN_REPSONSE_HELLO = "Hi! Who are you when you're not here?"
-FN_REPSONSE_HELLO_NO_UNKNOWNS = "Hi! Either we already know each other or you don't have access to the repo this channel is set up for."
+FN_RESPONSE_HELLO = "Hi! Who are you when you're not here?"
+FN_RESPONSE_HELLO_NO_UNKNOWNS = "Hi! Either we already know each other or you don't have access to the repo this channel is set up for."
 FN_RESPONSE_GOODBYE = "Who did you say you were again? (Command successful)"
-FN_RESPONE_DEPLOY = "Deployment started!"
+FN_RESPONSE_DEPLOY = "Deployment started!"
 PROMPT_USER_BUTTONS = "Select your GitHub username so we can connect it to your Slack username. If you don't see your name you don't have access to the repository"
 
 ERR_NO_FUNC_FOUND = "I didn't understand that, try `%s help`. This may also be an error with my code." % COMMAND
@@ -53,7 +53,7 @@ ERR_GOODBYE_NO_USER = "Nothing to forget; I couldn't find you in the DB."
 ERR_DEPLOY_ARGS = "You must specify what and where to deploy, as `deploy <branch-or-tag> to <environment>`"
 ERR_DEPLOY_VALID_ENV = "I don't recognise that environment name"
 ERR_DEPLOY_REFENV_VALIDATION = "That environment doesn't get built from that ref according to the supported workflow. "
-ERR_DEPLOY_REMOTE = "Something went wrong."
+ERR_DEPLOY_REMOTE = "Something went wrong: "
 
 SLACK_SIGNING_SECRET_VERSION = "v0"
 
@@ -275,7 +275,7 @@ def hello(text, context):
     entries = table.scan()
     for entry in entries['Items']:
         if context['channel_id'] == entry['slack_channelid']:
-            return connect_github_user(FN_REPSONSE_HELLO, entry['repository'], entry['slack_channelid'], FN_REPSONSE_HELLO_NO_UNKNOWNS)
+            return connect_github_user(FN_RESPONSE_HELLO, entry['repository'], entry['slack_channelid'], FN_RESPONSE_HELLO_NO_UNKNOWNS)
 
 
 def goodbye(*args, **kwargs):
@@ -325,6 +325,12 @@ def deploy(text, context):
             (env == 'preview' and ref != 'master')):
         return slack_response(ERR_DEPLOY_REFENV_VALIDATION)
 
+    if ref[0:4] != 'refs':
+        if env == 'production':
+            ref = "refs/tags/{}".format(ref)
+        else:
+            ref = "refs/heads/{}".format(ref)
+
     logging.info('Manually deploying {} to {}'.format(ref, env))
 
     # get the required bits: commit_sha, repo
@@ -338,24 +344,26 @@ def deploy(text, context):
     payload = {
         'repository': repository,
         'environment': env,
-        # forces creating new deployment, this will mean no retries if statuses aren't fixed
-        'commit_sha': int(time.mktime(datetime.now().timetuple())),
         'ref': ref,
         'description': 'Manually triggered from Slack via SN Deploybot with command `{}`'.format(text),
+        'trigger': 'slack_command',
     }
     response = lambda_client.invoke(
         FunctionName="{}-github_deployment_create".format(
             os.environ['FUNCTION_PREFIX']),
-        InvocationType='RequestResponse',
+        InvocationType='Event',
         Payload=json.dumps(payload)
     )
-    string_response = response["Payload"].read().decode('utf-8')
-    parsed_response = json.loads(string_response)
-    if 'errorType' in parsed_response:
-        return slack_response("{} {}".format(ERR_DEPLOY_REMOTE, parsed_response['errorMessage']))
+    return slack_response(FN_RESPONSE_DEPLOY)
 
-    logging.info(parsed_response)
-    return parsed_response
+    # since changing invoke from RequestResponse to Event (async call) we no longer get a useful return
+    # string_response = response["Payload"].read().decode('utf-8')
+    # parsed_response = json.loads(string_response)
+    # if 'errorType' in parsed_response:
+    #     return slack_response("{} `{}`".format(ERR_DEPLOY_REMOTE, parsed_response['errorMessage']))
+
+    # logging.info(parsed_response)
+    # return parsed_response
 
 
 #
@@ -550,3 +558,8 @@ def get_form_variable_value(form_var):
     Cleans up submitted form vars on the assumption they are single values
     """
     return form_var[0]
+
+
+if __name__ == "__main__":
+    create({'repository': 'signal-noise/deploybot',
+            'environment': 'pr', 'number': 13}, '')

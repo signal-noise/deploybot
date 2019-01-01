@@ -133,14 +133,12 @@ def deployment(data=None):
     """
     Process Deployment events
     """
-    number = (data['deployment']['payload']['prNumber']
-              if 'payload' in data['deployment']
-              and 'prNumber' in data['deployment']['payload']
-              else None)
-    url = (data['deployment']['payload']['prNumber']
-           if 'payload' in data['deployment']
-           and 'url' in data['deployment']['payload']
-           else None)
+    number = url = None
+    if 'payload' in data['deployment']:
+        if 'prNumber' in data['deployment']['payload']:
+            number = data['deployment']['payload']['prNumber']
+        if 'url' in data['deployment']['payload']:
+            url = data['deployment']['payload']['url']
     create_circleci_deployment(
         repository=data['repository']['full_name'],
         environment=data['deployment']['environment'],
@@ -171,7 +169,7 @@ def create_circleci_deployment(repository, environment, ref, commit_sha, number=
     payload = {
         'repository': repository,
         'environment': environment,
-        'version': '{}-{}'.format(environment, commit_sha),
+        'version': '{}-{}'.format(environment, commit_sha[0:10]),
     }
     if environment == 'production':
         payload['tag'] = payload['version'] = ref
@@ -198,7 +196,15 @@ def create_circleci_deployment(repository, environment, ref, commit_sha, number=
         logging.error("Couldn't find row for deployment")
         raise Exception("DB record not found where expected")
 
-    item = result['Items'][0]
+    for i in result['Items']:
+        if (i['environment'] == environment or 
+            (i['environment'] == 'pr' and environment[:2] == 'pr')):
+            item = i
+            break
+    else:
+        logging.error("Couldn't find row for deployment, results were {}".format(result))
+        raise Exception("DB record not found where expected")
+
     item['updatedAt'] = int(time.mktime(datetime.now().timetuple()))
     logging.info('updating record: {} with num {} and url {}'.format(
         item, response['build_num'], response['build_url']))
