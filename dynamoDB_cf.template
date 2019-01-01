@@ -1,7 +1,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Resources": {
-    "tabledeploybotdeploymentprod": {
+    "deployment": {
       "Type": "AWS::DynamoDB::Table",
       "Properties": {
         "AttributeDefinitions": [
@@ -80,7 +80,7 @@
         ]
       }
     },
-    "tabledeploybotprojectprod": {
+    "project": {
       "Type": "AWS::DynamoDB::Table",
       "Properties": {
         "AttributeDefinitions": [
@@ -109,7 +109,7 @@
         }
       }
     },
-    "tabledeploybotuserprod": {
+    "user": {
       "Type": "AWS::DynamoDB::Table",
       "Properties": {
         "AttributeDefinitions": [
@@ -186,7 +186,7 @@
         }
       }
     },
-    "alarmdeploybotdeploymentprodrepositorybuildnumberindexReadCapacityUnitsLimitBasicAlarm": {
+    "alarmdeploybotdeploymentrepositorybuildnumberindexReadCapacityUnitsLimitBasicAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Properties": {
         "ActionsEnabled": "true",
@@ -201,7 +201,7 @@
         "Dimensions": [
           {
             "Name": "TableName",
-            "Value": "deploybot-deployment-prod"
+            "Value": "deployment"
           },
           {
             "Name": "GlobalSecondaryIndexName",
@@ -210,7 +210,7 @@
         ]
       }
     },
-    "alarmdeploybotdeploymentprodrepositorybuildnumberindexWriteCapacityUnitsLimitBasicAlarm": {
+    "alarmdeploybotdeploymentrepositorybuildnumberindexWriteCapacityUnitsLimitBasicAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Properties": {
         "ActionsEnabled": "true",
@@ -225,7 +225,7 @@
         "Dimensions": [
           {
             "Name": "TableName",
-            "Value": "deploybot-deployment-prod"
+            "Value": "deployment"
           },
           {
             "Name": "GlobalSecondaryIndexName",
@@ -234,7 +234,7 @@
         ]
       }
     },
-    "alarmdeploybotdeploymentprodrepositorycommitindexReadCapacityUnitsLimitBasicAlarm": {
+    "alarmdeploybotdeploymentrepositorycommitindexReadCapacityUnitsLimitBasicAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Properties": {
         "ActionsEnabled": "true",
@@ -249,7 +249,7 @@
         "Dimensions": [
           {
             "Name": "TableName",
-            "Value": "deploybot-deployment-prod"
+            "Value": "deployment"
           },
           {
             "Name": "GlobalSecondaryIndexName",
@@ -258,7 +258,7 @@
         ]
       }
     },
-    "alarmdeploybotdeploymentprodrepositorycommitindexWriteCapacityUnitsLimitBasicAlarm": {
+    "alarmdeploybotdeploymentrepositorycommitindexWriteCapacityUnitsLimitBasicAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Properties": {
         "ActionsEnabled": "true",
@@ -273,7 +273,7 @@
         "Dimensions": [
           {
             "Name": "TableName",
-            "Value": "deploybot-deployment-prod"
+            "Value": "deployment"
           },
           {
             "Name": "GlobalSecondaryIndexName",

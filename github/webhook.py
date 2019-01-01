@@ -10,7 +10,8 @@ from boto3.dynamodb.conditions import Key
 from botocore.vendored import requests
 
 dynamodb = boto3.resource('dynamodb', region_name=os.environ['SLS_AWS_REGION'])
-lambda_client = boto3.client('lambda', region_name=os.environ['SLS_AWS_REGION'])
+lambda_client = boto3.client(
+    'lambda', region_name=os.environ['SLS_AWS_REGION'])
 
 logger = logging.getLogger()
 if logger.handlers:
@@ -273,13 +274,11 @@ def receive(event, context):
     for entry in entries['Items']:
         if repository == entry['repository']:
             slack_channel = entry['slack_channelid']
+            return call_function(event_type, data)
 
-    if slack_channel is not None:
-        return call_function(event_type, data)
-    else:
-        logging.info("No action taken for event '%s' on repo '%s'" %
-                     (event_type, repository))
-        return
+    logging.info("No action taken for event '%s' on repo '%s'" %
+                 (event_type, repository))
+    return
 
 
 def response(body=None, status=200):
