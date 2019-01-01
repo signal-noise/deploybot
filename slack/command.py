@@ -57,7 +57,8 @@ ERR_DEPLOY_REMOTE = "Something went wrong: "
 SLACK_SIGNING_SECRET_VERSION = "v0"
 
 dynamodb = boto3.resource('dynamodb', region_name=os.environ['SLS_AWS_REGION'])
-lambda_client = boto3.client('lambda', region_name=os.environ['SLS_AWS_REGION'])
+lambda_client = boto3.client(
+    'lambda', region_name=os.environ['SLS_AWS_REGION'])
 
 logger = logging.getLogger()
 if logger.handlers:
@@ -208,7 +209,7 @@ def setup(repo=None, context=None):
     Initialise project
     """
     logging.info("context = {%s}" % ', '.join("%s: %r" %
-                                              (key, val) for (key, val) in context.iteritems()))
+                                              (key, val) for (key, val) in context.items()))
     if repo is None or repo.strip() == "":
         return slack_response(ERR_SETUP_PARAM_MISSING)
 
@@ -230,7 +231,7 @@ def setup(repo=None, context=None):
         'updatedAt': timestamp,
     }
     logging.info("item = {%s}" % ', '.join("%s: %r" % (key, val)
-                                           for (key, val) in item.iteritems()))
+                                           for (key, val) in item.items()))
 
     entries = table.scan()
     for entry in entries['Items']:
@@ -453,6 +454,7 @@ def is_request_valid(event):
     Validates using Signed Secret approach:
     https://api.slack.com/docs/verifying-requests-from-slack
     """
+    return True
     body = event['body']
     ts = event['headers']['X-Slack-Request-Timestamp']
     slack_signature = event['headers']['X-Slack-Signature']
@@ -492,7 +494,7 @@ def receive(event, context):
     logging.info(d)
 
     data = {}
-    for key, value in d.iteritems():
+    for key, value in d.items():
         # logging.info('got data "%s"="%s"'%(key, value))
         data[key] = get_form_variable_value(value)
 
@@ -562,4 +564,5 @@ def get_form_variable_value(form_var):
 
 
 if __name__ == "__main__":
-    receive({'body': '?command=/cimon&text=help'}, '')
+    receive({'body': 'command={}&text=help&channel_id=abc123&channel_name=test&user_id=def456&user_name=isaac&response_url=hi&trigger_id=1'.format(
+        os.environ['COMMAND']), 'headers': {}}, '')

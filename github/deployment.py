@@ -508,7 +508,7 @@ def create(event, context):
         }
 
     logging.info("item = {%s}" % ', '.join("%s: %r" % (key, val)
-                                           for (key, val) in item.iteritems()))
+                                           for (key, val) in item.items()))
     table.put_item(Item=item)
 
     if http_request:

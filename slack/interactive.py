@@ -43,7 +43,7 @@ def github_username(gh_user, data=None):
         'updatedAt': timestamp,
     }
     logging.info("item = {%s}" % ', '.join("%s: %r" % (key, val)
-                                           for (key, val) in item.iteritems()))
+                                           for (key, val) in item.items()))
 
     entries = user_table.scan()
 
