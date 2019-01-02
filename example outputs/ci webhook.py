@@ -27,11 +27,11 @@
             u'build_time_millis': 1606
         },
         u'build_time_millis': 9406,
-        u'committer_email': u'me@marcelkornblum.com',
+        u'committer_email': u'email@gmail.com',
         u'context_ids': [
             u'sn-global'
         ],
-        u'author_email': u'me@marcelkornblum.com',
+        u'author_email': u'email@gmail.com',
         u'picard': {
             u'build_agent': {
                 u'image': u'circleci/picard:0.1.1250-22bf9f5d',
@@ -99,9 +99,9 @@
         u'fail_reason': None,
         u'all_commit_details': [{
             u'body': u'',
-            u'committer_email': u'me@marcelkornblum.com',
+            u'committer_email': u'email@gmail.com',
             u'commit_url': u'https://github.com/signal-noise/deploybot/commit/0eccfce94f07d2f545ee558da06b7c94cf564213',
-            u'author_email': u'me@marcelkornblum.com',
+            u'author_email': u'email@gmail.com',
             u'author_login': u'marcelkornblum',
             u'committer_date': u'2018-12-27T00:54:08Z',
             u'author_name': u'marcelkornblum',

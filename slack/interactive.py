@@ -139,9 +139,9 @@ def is_request_valid(event):
 
     basestring = ":".join((SLACK_SIGNING_SECRET_VERSION, ts, body))
     signature = hmac.new(
-        os.environ['SLACK_SIGNING_SECRET'],
-        basestring,
-        digestmod=hashlib.sha256
+        bytes(os.environ['SLACK_SIGNING_SECRET'], 'utf-8'),
+        bytes(basestring, 'utf-8'),
+        hashlib.sha256
     ).hexdigest()
     signature = '%s=%s' % (SLACK_SIGNING_SECRET_VERSION, signature)
 

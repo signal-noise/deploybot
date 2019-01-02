@@ -454,7 +454,6 @@ def is_request_valid(event):
     Validates using Signed Secret approach:
     https://api.slack.com/docs/verifying-requests-from-slack
     """
-    return True
     body = event['body']
     ts = event['headers']['X-Slack-Request-Timestamp']
     slack_signature = event['headers']['X-Slack-Signature']
@@ -467,9 +466,9 @@ def is_request_valid(event):
 
     basestring = ":".join((SLACK_SIGNING_SECRET_VERSION, ts, body))
     signature = hmac.new(
-        os.environ['SLACK_SIGNING_SECRET'],
-        basestring,
-        digestmod=hashlib.sha256
+        bytes(os.environ['SLACK_SIGNING_SECRET'], 'utf-8'),
+        bytes(basestring, 'utf-8'),
+        hashlib.sha256
     ).hexdigest()
     signature = '%s=%s' % (SLACK_SIGNING_SECRET_VERSION, signature)
 
@@ -564,5 +563,8 @@ def get_form_variable_value(form_var):
 
 
 if __name__ == "__main__":
-    receive({'body': 'command={}&text=help&channel_id=abc123&channel_name=test&user_id=def456&user_name=isaac&response_url=hi&trigger_id=1'.format(
-        os.environ['COMMAND']), 'headers': {}}, '')
+    receive({
+        'body': 'command={}&text=help&channel_id=abc123&channel_name=test&user_id=def456&user_name=isaac&response_url=hi&trigger_id=1'.format(
+            os.environ['COMMAND']),
+        'headers': {
+            'X-Slack-Request-Timestamp': '4e3287efe5ff45cb3976a661e63313bf75bdb84e88b5d201f85f6bf95eee7e5e', 'X-Slack-Request-Timestamp': '1546466712', 'X-Slack-Signature': '4922ca26f7d1138af6541a936ed0c8ca=8701594fd420b5f2ae8ada64a505a0dd728ec6a046a45d506cd4703be637b6f9'}}, '')
