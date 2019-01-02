@@ -3,15 +3,13 @@ service: deploybot
 frameworkVersion: ">=1.1.0 <2.0.0"
 
 package:
-  include:
-    - common/**
   exclude:
-    - requirements.txt
-    - serverless.yml
-    - README.md
-    - LICENSE
-    - docs/**
-    - outputs/**
+    - ./**
+  include:
+    - vendored/**
+    - circleci/**
+    - github/**
+    - slack/**
 
 provider:
   name: aws
@@ -36,6 +34,7 @@ provider:
     GITHUB_APP_ID: ${env:GITHUB_APP_ID}
     GITHUB_APP_INSTALLATIONID: ${env:GITHUB_APP_INSTALLATIONID}
     CIRCLECI_API_TOKEN: ${env:CIRCLECI_API_TOKEN}
+    PYTHONPATH: "/var/runtime:/var/task/vendored"
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -97,6 +96,7 @@ functions:
   slack_message:
     handler: slack/message.send
 # plugins:
+#   - serverless-offline
 #   - serverless-python-requirements
 
 # custom:
