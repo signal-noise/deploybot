@@ -18,6 +18,8 @@ Please send a [GitHub Pull Request to deploybot](https://github.com/signal-noise
 
 Please follow [PEP-8](https://www.python.org/dev/peps/pep-0008/) and make sure you've read about our workflow (below); in essence make sure each Pull Request is atomic but don't worry too much about the commits themselves as we use squash-and-merge.
 
+Note that if you alter the Python required packages you'll need to run `npm run build` which will repopulate `vendored`, for which you'll need docker running locally. We commit this folder into the repo to allow CI to build easily without doing complex docker-in-docker tricks.
+
 ## Our workflow
 
 We use [GitHub flow](https://guides.github.com/introduction/flow/); it's a lot like git-flow but simpler and more forgiving. Some additional pieces we've put in place are:
