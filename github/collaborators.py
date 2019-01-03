@@ -39,12 +39,11 @@ def get(event, context):
     if 'repository' not in data:
         logging.error("Validation Failed")
         raise Exception("Couldn't set up the repository.")
-        return
 
     try:
         (username, repository) = data['repository'].split('/')
     except ValueError as e:
-        logging.error("Validation Failed")
+        logging.error("Validation Failed {}".format(e))
         raise Exception("Couldn't set up the repository.")
 
     headers = {
