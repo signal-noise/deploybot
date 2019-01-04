@@ -1,10 +1,12 @@
 # GitHub App permissions and subscriptions
 
-The interface for amending all the information on this page can be found at `https://github.com/organizations/signal-noise/settings/apps/<your-app-name>/permissions`
+The interface for amending all the information on this page can be found at
+`https://github.com/organizations/signal-noise/settings/apps/<your-app-name>/permissions`
 
 ## Permissions
 
-These are the permissions currently given to the GitHub app. They may not all be necessary at the moment and it would be good to tighten this list up.
+These are the permissions currently given to the GitHub app. They may not all be
+necessary at the moment and it would be good to tighten this list up.
 
 ### No Access
 
