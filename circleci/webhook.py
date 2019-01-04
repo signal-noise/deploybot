@@ -69,5 +69,5 @@ def receive(event, context):
         return parsed_response
 
     logging.info(
-        "No deployment found matching {}/{} with build number {}".format(data['payload']['username'], data['payload']['reponame'], data['payload']['nuildnum']))
+        "No deployment found matching {}/{} with build number {}".format(data['payload']['username'], data['payload']['reponame'], data['payload']['build_num']))
     return
