@@ -14,6 +14,7 @@ if logger.handlers:
     for handler in logger.handlers:
         logger.removeHandler(handler)
 logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 
 def send(event, context):
@@ -26,28 +27,24 @@ def send(event, context):
     if 'repository' not in data:
         logging.error("No 'repository' supplied")
         raise Exception("Couldn't trigger a build.")
-        return
 
     try:
         (username, repository) = data['repository'].split('/')
     except ValueError as e:
-        logging.error("Repository name not in right format")
+        logging.error("Repository name not in right format: {}".format(e))
         raise Exception("Couldn't trigger a build.")
 
     if 'revision' not in data and 'tag' not in data:
         logging.error("Neither 'revision' nor 'tag' supplied")
         raise Exception("Couldn't trigger a build.")
-        return
 
     if 'environment' not in data:
         logging.error("No 'environment' supplied")
         raise Exception("Couldn't trigger a build.")
-        return
 
     if 'version' not in data:
         logging.error("No 'version' supplied")
         raise Exception("Couldn't trigger a build.")
-        return
 
     headers = {'Content-Type': 'application/json'}
     uri = '%s/project/github/%s/%s?circle-token=%s' % (
@@ -106,4 +103,4 @@ def response(body=None, status=200):
 
 if __name__ == "__main__":
     send({'repository': 'signal-noise/deploybot',
-          'revision': '6366aefd6dfa0891f89417edf88844667e5f2d55', 'environment': 'test'}, '')
+          'revision': '6366aefd6dfa0891f89417edf88844667e5f2d55', 'environment': 'test', 'version': '-test-'}, '')

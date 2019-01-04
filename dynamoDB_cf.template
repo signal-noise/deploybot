@@ -1,0 +1,286 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "deployment": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "build_number",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "commit_sha",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "id",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "repository",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "repository",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "id",
+            "KeyType": "RANGE"
+          }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "1",
+          "WriteCapacityUnits": "1"
+        },
+        "GlobalSecondaryIndexes": [
+          {
+            "IndexName": "repository-build_number-index",
+            "KeySchema": [
+              {
+                "AttributeName": "repository",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "build_number",
+                "KeyType": "RANGE"
+              }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            },
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": "1",
+              "WriteCapacityUnits": "1"
+            }
+          },
+          {
+            "IndexName": "repository-commit-index",
+            "KeySchema": [
+              {
+                "AttributeName": "repository",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "commit_sha",
+                "KeyType": "RANGE"
+              }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            },
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": "1",
+              "WriteCapacityUnits": "1"
+            }
+          }
+        ]
+      }
+    },
+    "project": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "repository",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "slack_channelid",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "repository",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "slack_channelid",
+            "KeyType": "RANGE"
+          }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "1",
+          "WriteCapacityUnits": "1"
+        }
+      }
+    },
+    "user": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "github_username",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "slack_userid",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "github_username",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "slack_userid",
+            "KeyType": "RANGE"
+          }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "1",
+          "WriteCapacityUnits": "1"
+        }
+      }
+    },
+    "topicdynamodb": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": "dynamodb"
+      }
+    },
+    "snspolicydynamodb": {
+      "Type": "AWS::SNS::TopicPolicy",
+      "Properties": {
+        "Topics": [
+          {
+            "Ref": "topicdynamodb"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2008-10-17",
+          "Id": "__default_policy_ID",
+          "Statement": [
+            {
+              "Sid": "__default_statement_ID",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Action": [
+                "SNS:GetTopicAttributes",
+                "SNS:SetTopicAttributes",
+                "SNS:AddPermission",
+                "SNS:RemovePermission",
+                "SNS:DeleteTopic",
+                "SNS:Subscribe",
+                "SNS:ListSubscriptionsByTopic",
+                "SNS:Publish",
+                "SNS:Receive"
+              ],
+              "Resource": {
+                "Ref": "topicdynamodb"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "AWS:SourceOwner": "529939435717"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "alarmdeploybotdeploymentrepositorybuildnumberindexReadCapacityUnitsLimitBasicAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "ActionsEnabled": "true",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "EvaluationPeriods": "60",
+        "MetricName": "ConsumedReadCapacityUnits",
+        "Namespace": "AWS/DynamoDB",
+        "Period": "60",
+        "Statistic": "Sum",
+        "Threshold": "48.0",
+        "AlarmActions": ["arn:aws:sns:eu-west-2:529939435717:dynamodb"],
+        "Dimensions": [
+          {
+            "Name": "TableName",
+            "Value": "deployment"
+          },
+          {
+            "Name": "GlobalSecondaryIndexName",
+            "Value": "repository-build_number-index"
+          }
+        ]
+      }
+    },
+    "alarmdeploybotdeploymentrepositorybuildnumberindexWriteCapacityUnitsLimitBasicAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "ActionsEnabled": "true",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "EvaluationPeriods": "60",
+        "MetricName": "ConsumedWriteCapacityUnits",
+        "Namespace": "AWS/DynamoDB",
+        "Period": "60",
+        "Statistic": "Sum",
+        "Threshold": "48.0",
+        "AlarmActions": ["arn:aws:sns:eu-west-2:529939435717:dynamodb"],
+        "Dimensions": [
+          {
+            "Name": "TableName",
+            "Value": "deployment"
+          },
+          {
+            "Name": "GlobalSecondaryIndexName",
+            "Value": "repository-build_number-index"
+          }
+        ]
+      }
+    },
+    "alarmdeploybotdeploymentrepositorycommitindexReadCapacityUnitsLimitBasicAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "ActionsEnabled": "true",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "EvaluationPeriods": "60",
+        "MetricName": "ConsumedReadCapacityUnits",
+        "Namespace": "AWS/DynamoDB",
+        "Period": "60",
+        "Statistic": "Sum",
+        "Threshold": "48.0",
+        "AlarmActions": ["arn:aws:sns:eu-west-2:529939435717:dynamodb"],
+        "Dimensions": [
+          {
+            "Name": "TableName",
+            "Value": "deployment"
+          },
+          {
+            "Name": "GlobalSecondaryIndexName",
+            "Value": "repository-commit-index"
+          }
+        ]
+      }
+    },
+    "alarmdeploybotdeploymentrepositorycommitindexWriteCapacityUnitsLimitBasicAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "ActionsEnabled": "true",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "EvaluationPeriods": "60",
+        "MetricName": "ConsumedWriteCapacityUnits",
+        "Namespace": "AWS/DynamoDB",
+        "Period": "60",
+        "Statistic": "Sum",
+        "Threshold": "48.0",
+        "AlarmActions": ["arn:aws:sns:eu-west-2:529939435717:dynamodb"],
+        "Dimensions": [
+          {
+            "Name": "TableName",
+            "Value": "deployment"
+          },
+          {
+            "Name": "GlobalSecondaryIndexName",
+            "Value": "repository-commit-index"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,2 +1,0 @@
-- there must be a job called `build`, which runs a deployment, using ENV vars supplied by the API
-- there must be a `notify` part with the webhook configuration

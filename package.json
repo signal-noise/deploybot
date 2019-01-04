@@ -1,13 +1,14 @@
 {
   "name": "deploybot",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Serverless bot integrating with Slack, GitHub and CircleCI to automate workflows",
   "author": "@marcelkornblum",
   "license": "MIT",
+  "scripts": {
+    "build": "./build.sh"
+  },
   "dependencies": {
-    "serverless": "^1.35.1",
-    "serverless-python-requirements": "^4.2.5",
-    "sls": "^0.1.0",
-    "update": "^0.7.4"
-  }
+    "serverless": "^1.35.1"
+  },
+  "devDependencies": {}
 }

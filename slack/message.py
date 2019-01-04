@@ -6,13 +6,14 @@ import boto3
 
 from botocore.vendored import requests
 
-dynamodb = boto3.resource('dynamodb')
+dynamodb = boto3.resource('dynamodb', region_name=os.environ['SLS_AWS_REGION'])
 
 logger = logging.getLogger()
 if logger.handlers:
     for handler in logger.handlers:
         logger.removeHandler(handler)
 logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 
 def send(event, context):
@@ -47,3 +48,6 @@ def send(event, context):
 
     return response
 
+
+if __name__ == "__main__":
+    send({'text': 'local test'}, '')

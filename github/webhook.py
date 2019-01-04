@@ -7,17 +7,18 @@ import time
 
 import boto3
 from boto3.dynamodb.conditions import Key
-
 from botocore.vendored import requests
 
-dynamodb = boto3.resource('dynamodb')
-lambda_client = boto3.client('lambda', region_name="eu-west-2",)
+dynamodb = boto3.resource('dynamodb', region_name=os.environ['SLS_AWS_REGION'])
+lambda_client = boto3.client(
+    'lambda', region_name=os.environ['SLS_AWS_REGION'])
 
 logger = logging.getLogger()
 if logger.handlers:
     for handler in logger.handlers:
         logger.removeHandler(handler)
 logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 
 #
@@ -133,6 +134,7 @@ def deployment(data=None):
     """
     Process Deployment events
     """
+    logging.info(data)
     number = url = None
     if 'payload' in data['deployment']:
         if 'prNumber' in data['deployment']['payload']:
@@ -197,12 +199,13 @@ def create_circleci_deployment(repository, environment, ref, commit_sha, number=
         raise Exception("DB record not found where expected")
 
     for i in result['Items']:
-        if (i['environment'] == environment or 
-            (i['environment'] == 'pr' and environment[:2] == 'pr')):
+        if (i['environment'] == environment or
+                (i['environment'] == 'pr' and environment[:2] == 'pr')):
             item = i
             break
     else:
-        logging.error("Couldn't find row for deployment, results were {}".format(result))
+        logging.error(
+            "Couldn't find row for deployment, results were {}".format(result))
         raise Exception("DB record not found where expected")
 
     item['updatedAt'] = int(time.mktime(datetime.now().timetuple()))
@@ -264,7 +267,7 @@ def receive(event, context):
 
     event_type = headers['X-GitHub-Event']
     repository = data['repository']['full_name'] if 'repository' in data else None
-    slack_channel = None
+    # slack_channel = None
     # event_id = headers['X-GitHub-Delivery']
 
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE_PROJECT'])
@@ -272,13 +275,11 @@ def receive(event, context):
     for entry in entries['Items']:
         if repository == entry['repository']:
             slack_channel = entry['slack_channelid']
+            return call_function(event_type, data)
 
-    if slack_channel is not None:
-        return call_function(event_type, data)
-    else:
-        logging.info("No action taken for event '%s' on repo '%s'" %
-                     (event_type, repository))
-        return
+    logging.info("No action taken for event '%s' on repo '%s'" %
+                 (event_type, repository))
+    return
 
 
 def response(body=None, status=200):

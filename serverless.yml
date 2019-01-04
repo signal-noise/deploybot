@@ -2,17 +2,29 @@ service: deploybot
 
 frameworkVersion: ">=1.1.0 <2.0.0"
 
+package:
+  exclude:
+    - ./**
+  include:
+    - vendored/**
+    - common/**
+    - circleci/**
+    - github/**
+    - slack/**
+
 provider:
   name: aws
   profile: deploybot
-  stage: prod
-  region: eu-west-2
-  runtime: python2.7
+  runtime: python3.7
+  stage: ${opt:stage, env:STAGE, 'prod'}
+  region: ${opt:region, env:SLS_AWS_REGION}
   environment:
-    FUNCTION_PREFIX: ${self:service}-${opt:stage, self:provider.stage}
-    DYNAMODB_TABLE_PROJECT: ${self:service}-project-${opt:stage, self:provider.stage}
-    DYNAMODB_TABLE_USER: ${self:service}-user-${opt:stage, self:provider.stage}
-    DYNAMODB_TABLE_DEPLOYMENT: ${self:service}-deployment-${opt:stage, self:provider.stage}
+    COMMAND: ${env:COMMAND, '/cimon'}
+    FUNCTION_PREFIX: ${self:service}-${self:provider.stage}
+    SLS_AWS_REGION: ${self:provider.region}
+    DYNAMODB_TABLE_PROJECT: ${env:DYNAMODB_TABLE_PROJECT}
+    DYNAMODB_TABLE_USER: ${env:DYNAMODB_TABLE_USER}
+    DYNAMODB_TABLE_DEPLOYMENT: ${env:DYNAMODB_TABLE_DEPLOYMENT}
     DYNAMODB_TABLE_DEPLOYMENT_BYCOMMIT: repository-commit-index
     DYNAMODB_TABLE_DEPLOYMENT_BYBUILDNUM: repository-build_number-index
     SLACK_WEBHOOK_URL: ${env:SLACK_WEBHOOK_URL}
@@ -23,6 +35,7 @@ provider:
     GITHUB_APP_ID: ${env:GITHUB_APP_ID}
     GITHUB_APP_INSTALLATIONID: ${env:GITHUB_APP_INSTALLATIONID}
     CIRCLECI_API_TOKEN: ${env:CIRCLECI_API_TOKEN}
+    PYTHONPATH: "/var/runtime:/var/task/vendored"
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -33,10 +46,10 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
       Resource:
-        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_PROJECT}"
-        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_USER}"
-        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}"
-        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}/*"
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_PROJECT}"
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_USER}"
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}"
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}/*"
     - Effect: Allow
       Action:
         - lambda:InvokeFunction
@@ -83,82 +96,13 @@ functions:
           cors: true
   slack_message:
     handler: slack/message.send
+# plugins:
+#   - serverless-offline
+#   - serverless-python-requirements
 
-resources:
-  # Resources:
-  #   projectDynamoDbTable:
-  #     Type: "AWS::DynamoDB::Table"
-  #     DeletionPolicy: Retain
-  #     Properties:
-  #       AttributeDefinitions:
-  #         - AttributeName: repository
-  #           AttributeType: S
-  #         - AttributeName: slack_channelid
-  #           AttributeType: S
-  #       KeySchema:
-  #         - AttributeName: repository
-  #           KeyType: HASH
-  #         - AttributeName: slack_channelid
-  #           KeyType: RANGE
-  #       ProvisionedThroughput:
-  #         ReadCapacityUnits: 1
-  #         WriteCapacityUnits: 1
-  #       TableName: ${self:provider.environment.DYNAMODB_TABLE_PROJECT}
-  #   userDynamoDbTable:
-  #     Type: "AWS::DynamoDB::Table"
-  #     DeletionPolicy: Retain
-  #     Properties:
-  #       AttributeDefinitions:
-  #         - AttributeName: github_username
-  #           AttributeType: S
-  #         - AttributeName: slack_userid
-  #           AttributeType: S
-  #       KeySchema:
-  #         - AttributeName: github_username
-  #           KeyType: HASH
-  #         - AttributeName: slack_userid
-  #           KeyType: RANGE
-  #       ProvisionedThroughput:
-  #         ReadCapacityUnits: 1
-  #         WriteCapacityUnits: 1
-  #       TableName: ${self:provider.environment.DYNAMODB_TABLE_USER}
-  #   deploymentDynamoDbTable:
-  #     Type: "AWS::DynamoDB::Table"
-  #     DeletionPolicy: Retain
-  #     Properties:
-  #       AttributeDefinitions:
-  #         - AttributeName: repository
-  #           AttributeType: S
-  #         - AttributeName: id
-  #           AttributeType: S
-  #         # - AttributeName: ref
-  #         #   AttributeType: S
-  #       KeySchema:
-  #         - AttributeName: repository
-  #           KeyType: HASH
-  #         - AttributeName: id
-  #           KeyType: RANGE
-  #       ProvisionedThroughput:
-  #         ReadCapacityUnits: 1
-  #         WriteCapacityUnits: 1
-  #       TableName: ${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}
-  #       # GlobalSecondaryIndexes:
-  #       #   - IndexName: ${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT_:}
-  #       #     KeySchema:
-  #       #       - AttributeName: repository
-  #       #         KeyType: HASH
-  #       #       - AttributeName: ref
-  #       #         KeyType: RANGE
-  #       #     Projection:
-  #       #       NonKeyAttributes:
-  #       #         - pr
-  #       #       ProjectionType: INCLUDE
-
-plugins:
-  - serverless-python-requirements
-
-custom:
-  pythonRequirements:
-    dockerizePip: "non-linux"
-    # useDownloadCache: true
-    # useStaticCache: true
+# custom:
+#   pythonRequirements:
+#     dockerizePip: "non-linux"
+#     # pythonBin: $(which python3)
+#     # useDownloadCache: true
+#     # useStaticCache: true

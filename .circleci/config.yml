@@ -26,30 +26,6 @@ jobs:
           name: Install Dependencies
           command: |
             npm ci
-            pip install --upgrade pip
-            apk add --no-cache --virtual .build-deps  \
-              bzip2-dev \
-              coreutils \
-              dpkg-dev dpkg \
-              findutils \
-              gcc \
-              gdbm-dev \
-              libc-dev \
-              libnsl-dev \
-              libressl-dev \
-              libtirpc-dev \
-              linux-headers \
-              make \
-              ncurses-dev \
-              pax-utils \
-              readline-dev \
-              sqlite-dev \
-              tcl-dev \
-              tk \
-              tk-dev \
-              zlib-dev \
-              python2-dev \
-              libffi-dev
       - run:
           name: Auth keys
           command: |
@@ -60,9 +36,6 @@ jobs:
       - run:
           name: Deploy
           command: ./node_modules/.bin/serverless deploy --verbose
-      - run:
-          name: Notify
-          command: echo 'To Do'
 
 notify:
   webhooks:

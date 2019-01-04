@@ -1,6 +1,8 @@
 # Serverless
 .serverless
 .env
+.env*
+-.env.sample
 tmp
 .coveralls.yml
 
@@ -36,3 +38,7 @@ node_modules
 # OS
 .DS_Store
 .tmp
+
+# Python 
+__pycache__
+*.pyc

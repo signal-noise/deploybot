@@ -10,16 +10,17 @@ from boto3.dynamodb.conditions import Key
 import jwt
 from botocore.vendored import requests
 
-dynamodb = boto3.resource('dynamodb')
-
 GITHUB_GRAPHQL_URI = "https://api.github.com/graphql"
 
+
+dynamodb = boto3.resource('dynamodb', region_name=os.environ['SLS_AWS_REGION'])
 
 logger = logging.getLogger()
 if logger.handlers:
     for handler in logger.handlers:
         logger.removeHandler(handler)
 logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 
 class RefNotFoundException(Exception):
@@ -217,6 +218,7 @@ def get_github_ids(**args):
             ids['prHeadRefId'] = json_data['data']['repository']['pullRequest']['headRef']['id']
             ids['prBaseRefId'] = json_data['data']['repository']['pullRequest']['baseRef']['id']
     except TypeError:
+        logging.info(json_data)
         raise RefNotFoundException("Does that ref exist?")
     return ids
 
@@ -227,11 +229,11 @@ def get_commitsha_for_ref(repoOwner, repoName, refName):
     of relevant Github objects.
     refName
     """
-    prefix = None
+    # prefix = None
     if refName[0:4] == 'refs':
         parts = refName.split("/")
         refName = "/".join(parts[2:])
-        prefix = "/".join(parts[:2])
+        # prefix = "/".join(parts[:2])
     headers = {
         'Content-Type': 'application/json',
         'Authorization': 'bearer {}'.format(get_installation_token())
@@ -252,7 +254,7 @@ def get_commitsha_for_ref(repoOwner, repoName, refName):
         return json_data['data']['repository']['ref']['target']['oid']
     except TypeError:
         raise RefNotFoundException("Does that ref exist?")
-    return ids
+    return
 
 
 def create_deployment(repoId, refId, env, description=None, prNumber=None, url=None):
@@ -314,10 +316,10 @@ def create_deployment_status(deploymentId, status, logUrl=None, environmentUrl=N
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
     json_data = r.json()
     logging.info(json_data)
-    # if json_data['data']['createDeploymentStatus']['deployment'] is not None:
-    #     return (True, json_data['data']['createDeployment']['deployment']['id'])
-    # else:
-    #     return (False, json_data['errors'][0]['message'])
+    if json_data['data']['createDeploymentStatus']['deployment'] is not None:
+        return (True, json_data['data']['createDeployment']['deployment']['id'])
+    else:
+        return (False, json_data['errors'][0]['message'])
 
 
 def get_url_for_env(repo, env, prNumber=None):
@@ -353,11 +355,6 @@ def get_installation_token():
     return json_data['token']
 
 
-if __name__ == "__main__":
-    create({'repository': 'signal-noise/deploybot',
-            'environment': 'pr', 'number': 13}, '')
-
-
 #
 #
 # Response logic
@@ -385,40 +382,33 @@ def create(event, context):
     if 'repository' not in data:
         logging.error("Validation Failed")
         raise Exception("Couldn't trigger the deployment.")
-        return
 
     try:
         (username, repository) = data['repository'].split('/')
     except ValueError as e:
-        logging.error("Validation Failed")
+        logging.error("Validation Failed {}".format(e))
         raise Exception("Couldn't trigger the deployment.")
-        return
 
     if 'environment' not in data:
         logging.error("Validation Failed")
         raise Exception("Couldn't trigger the deployment.")
-        return
 
     if 'commit_sha' not in data and 'ref' not in data:
         logging.error("no commit SHA, or ref to get one from")
         raise Exception("Couldn't trigger the deployment.")
-        return
 
     env = data['environment'].lower()
     if env not in ('pr', 'preview', 'test', 'staging', 'production'):
         logging.error("%s not a valid environment" % env)
         raise Exception("Couldn't trigger the deployment.")
-        return
 
     if env == 'pr' and 'number' not in data:
         logging.error("no valid PR number")
         raise Exception("Couldn't trigger the deployment.")
-        return
 
     if env != 'pr' and 'ref' not in data:
         logging.error("no valid ref")
         raise Exception("Couldn't trigger the deployment.")
-        return
 
     if 'commit_sha' in data:
         commit_sha = data['commit_sha']
@@ -464,7 +454,8 @@ def create(event, context):
             })
             break
     else:
-        logging.info('no record with matching repo, commit and env, all results = {}'.format(result))
+        logging.info(
+            'no record with matching repo, commit and env, all results = {}'.format(result))
     # else:
         item = {
             'repository': data['repository'],
@@ -510,12 +501,12 @@ def create(event, context):
         }
 
     logging.info("item = {%s}" % ', '.join("%s: %r" % (key, val)
-                                           for (key, val) in item.iteritems()))
+                                           for (key, val) in item.items()))
     table.put_item(Item=item)
 
     if http_request:
         response = {
-            "statusCode": r.status_code,
+            "statusCode": 200,
             "body": response_data
         }
     else:
@@ -563,19 +554,19 @@ def create_status(event, context):
         kwargs['logUrl'] = data['logUrl']
     if 'environmentUrl' in data:
         kwargs['environmentUrl'] = data['environmentUrl']
-    success, item['id'] = create_deployment_status(**kwargs)
+    success, id = create_deployment_status(**kwargs)
 
     if success is True:
         response_data = {
-            "deployment_id": item['id']
+            "deployment_id": id
         }
     else:
         response_data = {
-            "error_message": error_message
+            "error_message": "Something went wrong :("
         }
     if http_request:
         response = {
-            "statusCode": r.status_code,
+            "statusCode": 200,
             "body": response_data
         }
     else:
@@ -617,3 +608,8 @@ def generate_jwt():
         algorithm='RS256')
 
     return token.decode('utf-8')
+
+
+if __name__ == "__main__":
+    create({'repository': 'signal-noise/deploybot',
+            'environment': 'pr', 'number': 13, 'commit_sha': '880fae856cfd0e6c92f9e4f5e6991768c7c009c0'}, '')

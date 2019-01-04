@@ -7,12 +7,11 @@ import sys
 import time
 # import traceback
 from datetime import datetime, timedelta
-from urlparse import parse_qs
+from urllib.parse import parse_qs
 
 import boto3
-lambda_client = boto3.client('lambda', region_name="eu-west-2",)
 
-COMMAND = '/cimon'
+COMMAND = os.environ['COMMAND']
 
 FN_RESPONSE_HELP = ("There are a few things you can ask me to do. "
                     "Try `%s setup signal-noise/reponame` to get started, "
@@ -57,14 +56,16 @@ ERR_DEPLOY_REMOTE = "Something went wrong: "
 
 SLACK_SIGNING_SECRET_VERSION = "v0"
 
-dynamodb = boto3.resource('dynamodb')
-lambda_client = boto3.client('lambda', region_name="eu-west-2",)
+dynamodb = boto3.resource('dynamodb', region_name=os.environ['SLS_AWS_REGION'])
+lambda_client = boto3.client(
+    'lambda', region_name=os.environ['SLS_AWS_REGION'])
 
 logger = logging.getLogger()
 if logger.handlers:
     for handler in logger.handlers:
         logger.removeHandler(handler)
 logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 #
 #
@@ -208,7 +209,7 @@ def setup(repo=None, context=None):
     Initialise project
     """
     logging.info("context = {%s}" % ', '.join("%s: %r" %
-                                              (key, val) for (key, val) in context.iteritems()))
+                                              (key, val) for (key, val) in context.items()))
     if repo is None or repo.strip() == "":
         return slack_response(ERR_SETUP_PARAM_MISSING)
 
@@ -230,7 +231,7 @@ def setup(repo=None, context=None):
         'updatedAt': timestamp,
     }
     logging.info("item = {%s}" % ', '.join("%s: %r" % (key, val)
-                                           for (key, val) in item.iteritems()))
+                                           for (key, val) in item.items()))
 
     entries = table.scan()
     for entry in entries['Items']:
@@ -465,9 +466,9 @@ def is_request_valid(event):
 
     basestring = ":".join((SLACK_SIGNING_SECRET_VERSION, ts, body))
     signature = hmac.new(
-        os.environ['SLACK_SIGNING_SECRET'],
-        basestring,
-        digestmod=hashlib.sha256
+        bytes(os.environ['SLACK_SIGNING_SECRET'], 'utf-8'),
+        bytes(basestring, 'utf-8'),
+        hashlib.sha256
     ).hexdigest()
     signature = '%s=%s' % (SLACK_SIGNING_SECRET_VERSION, signature)
 
@@ -489,9 +490,10 @@ def receive(event, context):
         return response({"message": "Authentication Failed"}, 401)
 
     d = parse_qs(event['body'])
+    logging.info(d)
 
     data = {}
-    for key, value in d.iteritems():
+    for key, value in d.items():
         # logging.info('got data "%s"="%s"'%(key, value))
         data[key] = get_form_variable_value(value)
 
@@ -561,5 +563,8 @@ def get_form_variable_value(form_var):
 
 
 if __name__ == "__main__":
-    create({'repository': 'signal-noise/deploybot',
-            'environment': 'pr', 'number': 13}, '')
+    receive({
+        'body': 'command={}&text=help&channel_id=abc123&channel_name=test&user_id=def456&user_name=isaac&response_url=hi&trigger_id=1'.format(
+            os.environ['COMMAND']),
+        'headers': {
+            'X-Slack-Request-Timestamp': '4e3287efe5ff45cb3976a661e63313bf75bdb84e88b5d201f85f6bf95eee7e5e', 'X-Slack-Request-Timestamp': '1546466712', 'X-Slack-Signature': '4922ca26f7d1138af6541a936ed0c8ca=8701594fd420b5f2ae8ada64a505a0dd728ec6a046a45d506cd4703be637b6f9'}}, '')
