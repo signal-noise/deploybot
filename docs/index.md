@@ -47,12 +47,12 @@ buttons; pressing one will claim that GH username for the user who pressed it.
 
 ## Installation
 
-Please read the [Installation guide](./docs/installation.md) in the
+Please read the [Installation guide](./installation.md) in the
 documentation.
 
 ## Contributing
 
-Please read about [submitting contributions](./docs/CONTRIBUTING.md).
+Please read about [submitting contributions](./CONTRIBUTING.md).
 
 ## Project structure
 
