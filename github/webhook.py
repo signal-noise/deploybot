@@ -134,6 +134,7 @@ def deployment(data=None):
     """
     Process Deployment events
     """
+    logging.info(data)
     number = url = None
     if 'payload' in data['deployment']:
         if 'prNumber' in data['deployment']['payload']:
@@ -266,7 +267,7 @@ def receive(event, context):
 
     event_type = headers['X-GitHub-Event']
     repository = data['repository']['full_name'] if 'repository' in data else None
-    slack_channel = None
+    # slack_channel = None
     # event_id = headers['X-GitHub-Delivery']
 
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE_PROJECT'])

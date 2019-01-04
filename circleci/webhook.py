@@ -6,7 +6,8 @@ import boto3
 from boto3.dynamodb.conditions import Key
 
 dynamodb = boto3.resource('dynamodb', region_name=os.environ['SLS_AWS_REGION'])
-lambda_client = boto3.client('lambda', region_name=os.environ['SLS_AWS_REGION'])
+lambda_client = boto3.client(
+    'lambda', region_name=os.environ['SLS_AWS_REGION'])
 
 logger = logging.getLogger()
 if logger.handlers:
@@ -22,6 +23,7 @@ def receive(event, context):
     """
     data = json.loads(event['body'])
     if 'outcome' not in data['payload']:
+        logging.info("not a final status")
         return
     outcome = data['payload']['outcome']
 
@@ -39,9 +41,7 @@ def receive(event, context):
         logging.info('need to update status of {} to {}'.format(
             dep, outcome))
 
-        if outcome in ('no_tests', ):
-            status = 'ERROR'
-        elif outcome in ('canceled', 'infrastructure_fail', 'timedout', 'failed'):
+        if outcome in ('canceled', 'infrastructure_fail', 'timedout', 'failed'):
             status = 'FAILURE'
         # elif outcome in ():
         #     status = 'INACTIVE'
@@ -49,6 +49,8 @@ def receive(event, context):
         #     status = 'PENDING'
         elif outcome in ('success', ):
             status = 'SUCCESS'
+        else:  # outcome in ('no_tests', ): # or any other outcome
+            status = 'ERROR'
         payload = {
             "deploymentId": dep['id'],
             "status": status,
@@ -65,3 +67,7 @@ def receive(event, context):
         string_response = response["Payload"].read().decode('utf-8')
         parsed_response = json.loads(string_response)
         return parsed_response
+
+    logging.info(
+        "No deployment found matching {}/{} with build number {}".format(data['payload']['username'], data['payload']['reponame'], data['payload']['nuildnum']))
+    return

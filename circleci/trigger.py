@@ -27,28 +27,24 @@ def send(event, context):
     if 'repository' not in data:
         logging.error("No 'repository' supplied")
         raise Exception("Couldn't trigger a build.")
-        return
 
     try:
         (username, repository) = data['repository'].split('/')
     except ValueError as e:
-        logging.error("Repository name not in right format")
+        logging.error("Repository name not in right format: {}".format(e))
         raise Exception("Couldn't trigger a build.")
 
     if 'revision' not in data and 'tag' not in data:
         logging.error("Neither 'revision' nor 'tag' supplied")
         raise Exception("Couldn't trigger a build.")
-        return
 
     if 'environment' not in data:
         logging.error("No 'environment' supplied")
         raise Exception("Couldn't trigger a build.")
-        return
 
     if 'version' not in data:
         logging.error("No 'version' supplied")
         raise Exception("Couldn't trigger a build.")
-        return
 
     headers = {'Content-Type': 'application/json'}
     uri = '%s/project/github/%s/%s?circle-token=%s' % (

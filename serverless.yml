@@ -16,12 +16,12 @@ provider:
   name: aws
   profile: deploybot
   runtime: python3.7
-  stage: ${env:STAGE, 'prod'}
-  region: ${env:SLS_AWS_REGION}
+  stage: ${opt:stage, env:STAGE, 'prod'}
+  region: ${opt:region, env:SLS_AWS_REGION}
   environment:
     COMMAND: ${env:COMMAND, '/cimon'}
-    FUNCTION_PREFIX: ${self:service}-${opt:stage, self:provider.stage}
-    SLS_AWS_REGION: ${env:SLS_AWS_REGION}
+    FUNCTION_PREFIX: ${self:service}-${self:provider.stage}
+    SLS_AWS_REGION: ${self:provider.region}
     DYNAMODB_TABLE_PROJECT: ${env:DYNAMODB_TABLE_PROJECT}
     DYNAMODB_TABLE_USER: ${env:DYNAMODB_TABLE_USER}
     DYNAMODB_TABLE_DEPLOYMENT: ${env:DYNAMODB_TABLE_DEPLOYMENT}
@@ -46,10 +46,10 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
       Resource:
-        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_PROJECT}"
-        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_USER}"
-        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}"
-        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}/*"
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_PROJECT}"
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_USER}"
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}"
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_DEPLOYMENT}/*"
     - Effect: Allow
       Action:
         - lambda:InvokeFunction
