@@ -123,7 +123,8 @@ def get_create_deployment_mutation(mutation_vars):
                     refId: "$refId",
                     environment: "$environment",
                     description: "$description",
-                    autoMerge: false
+                    autoMerge: false,
+                    requiredContexts: []
     """
     if payload != {}:
         mutation += """,

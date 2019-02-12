@@ -107,7 +107,7 @@ def status(data=None):
             if dep['status'] == 'pending':
                 logging.info('found {}'.format(dep))
 
-                if state == 'success' or state == 'neutral':
+                if state == 'success':
                     record = {
                         'repository': dep['repository'],
                         'environment': dep['environment'],
