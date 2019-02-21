@@ -21,7 +21,8 @@ FN_RESPONSE_HELP = ("There are a few things you can ask me to do. "
 FN_RESPONSE_SET = ("Call this with two or three arguments; e.g. `%s set baseurl test.com`, or `%s set URL preview preview.test.com`. "
                    "Settings you can set here are: \n"
                    "- `baseurl`: Actually a domain: if your PR environment is at `pr27.test.com`, this is `test.com`. This will be used to create all environment URLs not explicitly specified\n"
-                   "- `url`: A domain specific to an environment, to override the `environment.baseurl` rule. You must call this with the environment name and then the FQDN as above. Please don't include protocol but DO ensure HTTPS is supported." % (COMMAND, COMMAND))
+                   "- `url`: A domain specific to an environment, to override the `environment.baseurl` rule. You must call this with the environment name and then the FQDN as above. Please don't include protocol but DO ensure HTTPS is supported.\n"
+                   "- `url_separator`: The charater used to join your specific environment name to the baseurl. I.e. in `pr27.test.com`, the `.` between `pr27` and `test.com`. Defaults to `.` " % (COMMAND, COMMAND))
 FN_RESPONSE_SET_CONFIRM = "Great, I've set %s to %s."
 FN_RESPONSE_UNSET = "Call this with the one or two arguments you called `set` with, and no value part - e.g. `%s unset baseurl`" % COMMAND
 FN_RESPONSE_CONFIG_EXISTS = "This channel is currently set up for `%s`. Some GitHub users may not be connected."
@@ -95,6 +96,12 @@ def set(text, context):
         return slack_response(ERR_SET_SETTING_NOT_RECOGNISED + FN_RESPONSE_SET)
 
     if setting == 'baseurl':
+        if len(parts) != 2:
+            return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_SET)
+        value = parts[1]
+        val_type = "S"
+
+    if setting == 'url_separator':
         if len(parts) != 2:
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_SET)
         value = parts[1]
