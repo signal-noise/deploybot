@@ -92,7 +92,7 @@ def set(text, context):
     parts = text.split()
     setting = parts[0].lower()
 
-    if setting not in ('baseurl', 'url'):
+    if setting not in ('baseurl', 'url', 'url_separator'):
         return slack_response(ERR_SET_SETTING_NOT_RECOGNISED + FN_RESPONSE_SET)
 
     if setting == 'baseurl':
