@@ -335,8 +335,8 @@ def get_url_for_env(repo, env, prNumber=None):
                 if env[0:2] == 'pr' and prNumber is not None:
                     env = '{}{}'.format(env, prNumber)
                 separator = '.'
-                if 'setting_urlseparator' in entry:
-                    separator = entry['setting_urlseparator']
+                if 'setting_url_separator' in entry:
+                    separator = entry['setting_url_separator']
                 return "https://{}{}{}".format(env, separator, entry['setting_baseurl'])
             logging.warn("No URL setting found for repo {}".format(repo))
     logging.error("No repo {} found in DB for get_url".format(repo))
