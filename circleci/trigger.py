@@ -67,7 +67,11 @@ def send(event, context):
     # https://circleci.com/docs/api/#trigger-a-new-job
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
     json_data = r.json()
-    # logging.info(json_data)
+    if r.status_code != 200:
+        logging.info("ERROR: %s" % r.status_code)
+        logging.info(uri)
+        logging.info(payload)
+        logging.info(json_data)
     response_data = {
         "build_url": json_data['build_url'],
         "build_num": json_data['build_num']
