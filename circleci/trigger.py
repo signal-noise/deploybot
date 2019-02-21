@@ -68,6 +68,9 @@ def send(event, context):
     r = requests.post(uri, data=json.dumps(payload), headers=headers)
     json_data = r.json()
     if r.status_code != 200:
+        logging.info("ERROR: %s" % r.status_code)
+        logging.info(uri)
+        logging.info(payload)
         logging.info(json_data)
     response_data = {
         "build_url": json_data['build_url'],
