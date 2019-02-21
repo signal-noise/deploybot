@@ -69,9 +69,10 @@ def send(event, context):
     json_data = r.json()
     # logging.info(json_data)
     response_data = {
-        "build_url": json_data['build_url'],
         "build_num": json_data['build_num']
     }
+    if 'build_url' in json_data:
+        response_data["build_url"] = json_data['build_url']
 
     if http_request:
         response = {
