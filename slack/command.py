@@ -33,7 +33,7 @@ FN_RESPONSE_RESET_SUCCESS = "Removed this channel's configuration for `%s`"
 FN_RESPONSE_HELLO = "Hi! Who are you when you're not here?"
 FN_RESPONSE_HELLO_NO_UNKNOWNS = "Hi! Either we already know each other or you don't have access to the repo this channel is set up for."
 FN_RESPONSE_GOODBYE = "Who did you say you were again? (Command successful)"
-FN_RESPONSE_DEPLOY = "Deployment started!"
+FN_RESPONSE_DEPLOY = "Deployment of `%s` to `%s` has started!"
 PROMPT_USER_BUTTONS = "Select your GitHub username so we can connect it to your Slack username. If you don't see your name you don't have access to the repository"
 
 ERR_NO_FUNC_FOUND = "I didn't understand that, try `%s help`. This may also be an error with my code." % COMMAND
@@ -326,11 +326,7 @@ def deploy(text, context):
         # no force-building PRs
         return slack_response(ERR_DEPLOY_VALID_ENV)
 
-    if (
-        (env == 'production' and ref[0:1] != 'v') or
-        (env == 'staging' and ref[0:7] != 'release') or
-        (env == 'test' and ref[0:7] != 'release') or
-            (env == 'preview' and ref != 'master')):
+    if (env == 'production' and ref[0:1] != 'v'):
         return slack_response(ERR_DEPLOY_REFENV_VALIDATION)
 
     if ref[0:4] != 'refs':
@@ -362,7 +358,7 @@ def deploy(text, context):
         InvocationType='Event',
         Payload=json.dumps(payload)
     )
-    return slack_response(FN_RESPONSE_DEPLOY)
+    return slack_response(FN_RESPONSE_DEPLOY % (ref, env), True)
 
     # since changing invoke from RequestResponse to Event (async call) we no longer get a useful return
     # string_response = response["Payload"].read().decode('utf-8')
@@ -421,7 +417,7 @@ def slack_response(message, is_public=False):
         response_type = "in_channel"
 
     return response({
-        "response_type": "ephemeral",
+        "response_type": response_type,
         "text": message
     }, 200)
 
