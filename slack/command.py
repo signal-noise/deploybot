@@ -20,9 +20,10 @@ FN_RESPONSE_HELP = ("There are a few things you can ask me to do. "
                     "There's also `%s reset` if you want to start over on this channel's configuration." % (COMMAND, COMMAND, COMMAND, COMMAND, COMMAND))
 FN_RESPONSE_SET = ("Call this with two or three arguments; e.g. `%s set baseurl test.com`, or `%s set URL preview preview.test.com`. "
                    "Settings you can set here are: \n"
-                   "- `baseurl`: Actually a domain: if your PR environment is at `pr27.test.com`, this is `test.com`. This will be used to create all environment URLs not explicitly specified\n"
-                   "- `url`: A domain specific to an environment, to override the `environment.baseurl` rule. You must call this with the environment name and then the FQDN as above. Please don't include protocol but DO ensure HTTPS is supported.\n"
-                   "- `url_separator`: The charater used to join your specific environment name to the baseurl. I.e. in `pr27.test.com`, the `.` between `pr27` and `test.com`. Defaults to `.` " % (COMMAND, COMMAND))
+                   "- `url`: A domain specific to an environment, to override the *url_pattern* rule. You must call this with the environment name and then the FQDN as above. Please don't include protocol but DO ensure HTTPS is supported.\n"
+                   "- `url_pattern`: The pattern used to generate URLs for environments. Defaults to `https://{environment}{url_separator}{baseurl}/`. Please include all those 3 variables in that format.\n"
+                   "- `baseurl`: Actually a domain: if your PR environment is at `https://pr27.test.com`, this is `test.com`. This will be used to create all environment URLs not explicitly specified.\n"
+                   "- `url_separator`: The charater used to join your specific environment name to the baseurl. I.e. in `https://pr27.test.com`, the `.` between `pr27` and `test.com`. Defaults to `.` " % (COMMAND, COMMAND))
 FN_RESPONSE_SET_CONFIRM = "Great, I've set %s to %s."
 FN_RESPONSE_UNSET = "Call this with the one or two arguments you called `set` with, and no value part - e.g. `%s unset baseurl`" % COMMAND
 FN_RESPONSE_CONFIG_EXISTS = "This channel is currently set up for `%s`. Some GitHub users may not be connected."
@@ -41,6 +42,7 @@ ERR_SET = "Something went wrong. Have you set this channel up with a repo yet?"
 ERR_SET_SETTING_NOT_RECOGNISED = "I didn't recognise that setting. "
 ERR_SET_SETTING_2_ARGS = "That setting needs a single value; unset with just the setting name. "
 ERR_SET_SETTING_3_ARGS = "That setting needs two values; unset with the setting name and the first argument. "
+ERR_SET_URLPATTERN_SPECIFIC_VARS = "You need to include all of the following variables in your pattern: `{environment}`, `{url_separator}`, `{baseurl}`"
 ERR_SETUP_PARAM_MISSING = "You need to tell me which repo. Try `%s setup username/reponame`" % COMMAND
 ERR_SETUP_PARAM_FORMAT = ("The repo name should be two parts; the GitHub username and the actual"
                           " repository name. e.g. the React library's repo would be `facebook/react`")
@@ -92,20 +94,17 @@ def set(text, context):
     parts = text.split()
     setting = parts[0].lower()
 
-    if setting not in ('baseurl', 'url', 'url_separator'):
+    if setting not in (
+        'url',
+        'baseurl',
+        'url_pattern',
+        'urlpattern',
+        'url-pattern',
+        'url_separator',
+        'urlseparator',
+        'url-separator',
+    ):
         return slack_response(ERR_SET_SETTING_NOT_RECOGNISED + FN_RESPONSE_SET)
-
-    if setting == 'baseurl':
-        if len(parts) != 2:
-            return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_SET)
-        value = parts[1]
-        val_type = "S"
-
-    if setting == 'url_separator':
-        if len(parts) != 2:
-            return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_SET)
-        value = parts[1]
-        val_type = "S"
 
     if setting == 'url':
         if len(parts) != 3:
@@ -114,6 +113,30 @@ def set(text, context):
             parts[1]: parts[2]
         }
         val_type = "M"
+
+    if setting in ('urlpattern', 'url-pattern', 'url_pattern', ):
+        setting = 'url_pattern'
+        if len(parts) != 1:
+            return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_SET)
+        value = parts[1]
+        if ('{environment}' not in value and
+            '{url_separator}' not in value and
+                '{baseurl}' not in value):
+            return slack_response(ERR_SET_URLPATTERN_SPECIFIC_VARS)
+        val_type = "S"
+
+    if setting == 'baseurl':
+        if len(parts) != 2:
+            return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_SET)
+        value = parts[1]
+        val_type = "S"
+
+    if setting in ('urlseparator', 'url-separator', 'url_separator', ):
+        setting = 'url_separator'
+        if len(parts) != 2:
+            return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_SET)
+        value = parts[1]
+        val_type = "S"
 
     setting = 'setting_{}'.format(setting)
 
@@ -153,18 +176,39 @@ def unset(text, context):
     parts = text.split()
     setting = parts[0].lower()
 
-    if setting not in ('baseurl', 'url'):
+    if setting not in (
+        'url',
+        'baseurl',
+        'url_pattern',
+        'urlpattern',
+        'url-pattern',
+        'url_separator',
+        'urlseparator',
+        'url-separator',
+    ):
         return slack_response(ERR_SET_SETTING_NOT_RECOGNISED + FN_RESPONSE_UNSET)
-
-    if setting == 'baseurl':
-        if len(parts) != 1:
-            return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_UNSET)
-        val_type = "S"
 
     if setting == 'url':
         if len(parts) != 2:
             return slack_response(ERR_SET_SETTING_3_ARGS + FN_RESPONSE_UNSET)
         val_type = "M"
+
+    if setting in ('urlpattern', 'url-pattern', 'url_pattern'):
+        setting = 'url_pattern'
+        if len(parts) != 1:
+            return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_UNSET)
+        val_type = "S"
+
+    if setting in ('urlseparator', 'url-separator', 'url_separator'):
+        setting = 'url_separator'
+        if len(parts) != 1:
+            return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_UNSET)
+        val_type = "S"
+
+    if setting == 'baseurl':
+        if len(parts) != 1:
+            return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_UNSET)
+        val_type = "S"
 
     setting = 'setting_{}'.format(setting)
 

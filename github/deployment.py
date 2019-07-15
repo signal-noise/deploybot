@@ -331,14 +331,24 @@ def get_url_for_env(repo, env, prNumber=None):
             logging.info('get_url found db item {}'.format(entry))
             if 'setting_url' in entry and env in entry['setting_url']:
                 return "https://{}".format(entry['setting_url'][env])
-            elif 'setting_baseurl' in entry:
+            else:
+                if 'setting_baseurl' not in entry:
+                    logging.warn(
+                        "No URL setting found for repo {}".format(repo))
+                    return None
+
+                pattern = 'https://{environment}{url_separator}{baseurl}/'
+                separator = '.'
                 if env[0:2] == 'pr' and prNumber is not None:
                     env = '{}{}'.format(env, prNumber)
-                separator = '.'
+
+                if 'setting_url_pattern' in entry:
+                    pattern = entry['setting_url_pattern']
                 if 'setting_url_separator' in entry:
                     separator = entry['setting_url_separator']
-                return "https://{}{}{}".format(env, separator, entry['setting_baseurl'])
-            logging.warn("No URL setting found for repo {}".format(repo))
+
+                return pattern.format(environment=env, url_separator=separator, baseurl=entry['setting_baseurl'])
+
     logging.error("No repo {} found in DB for get_url".format(repo))
     return None
 
