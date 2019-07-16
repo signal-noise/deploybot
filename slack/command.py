@@ -116,7 +116,7 @@ def set(text, context):
 
     if setting in ('urlpattern', 'url-pattern', 'url_pattern', ):
         setting = 'url_pattern'
-        if len(parts) != 1:
+        if len(parts) != 2:
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_SET)
         value = parts[1]
         if ('{environment}' not in value and
