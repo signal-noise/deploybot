@@ -19,7 +19,7 @@ jobs:
 
   old_build:
     docker:
-      - image: signalnoise/base:10.13
+      - image: signalnoise/base:10
     steps:
       - checkout
       - run:
