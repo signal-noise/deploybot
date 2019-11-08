@@ -7,7 +7,7 @@ jobs:
     working_directory: ~/project
     steps:
       - run: env
-      - run: "circleci step halt" # we can't deploy from CI at the moment :/
+      - run: npm install underscore puppeteer
 
   build:
     docker:
