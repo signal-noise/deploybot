@@ -12,6 +12,7 @@ jobs:
     docker:
       - image: signalnoise/base:10.13
     steps:
+      - run: env
       - run: echo $ENVIRONMENT
       - run: echo $VERSION
       - run: echo $SUBDOMAIN
