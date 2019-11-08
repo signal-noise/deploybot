@@ -6,13 +6,13 @@ jobs:
       # - image: signalnoise/python:10.13-2.7
     working_directory: ~/project
     steps:
+      - run: env
       - run: "circleci step halt" # we can't deploy from CI at the moment :/
 
   build:
     docker:
       - image: signalnoise/base:10.13
     steps:
-      - run: env
       - run: echo $ENVIRONMENT
       - run: echo $VERSION
       - run: echo $SUBDOMAIN
