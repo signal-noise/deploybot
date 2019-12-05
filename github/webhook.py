@@ -81,7 +81,7 @@ def push(data=None):
             'environment': env,
             'ref': data['ref'],
             'trigger': 'gh_event',
-            'commit_author': data['head_commit']['author']['name'] or None,
+            'commit_author': data['head_commit']['author']['username'] or data['head_commit']['author']['name'] or None,
             'commit_sha': data['head_commit']['id']
         })
     return

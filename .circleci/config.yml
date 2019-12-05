@@ -6,8 +6,7 @@ jobs:
       # - image: signalnoise/python:10.13-2.7
     working_directory: ~/project
     steps:
-      - run: env
-      - run: npm install underscore puppeteer
+      - run: "circleci step halt" # we can't deploy from CI at the moment :/
 
   build:
     docker:
