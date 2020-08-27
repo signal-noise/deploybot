@@ -17,7 +17,8 @@ FN_RESPONSE_HELP = ("There are a few things you can ask me to do. "
                     "Try `%s setup signal-noise/reponame` to get started, "
                     "or `%s config` to see what's going on in this channel. "
                     "There's `%s hello` to connect your Github and Slack accounts, and `%s bye` to undo that. "
-                    "There's also `%s reset` if you want to start over on this channel's configuration." % (COMMAND, COMMAND, COMMAND, COMMAND, COMMAND))
+                    "There's also `%s reset` if you want to start over on this channel's configuration."
+                    "To see information about setting variables, try `%s set`" % (COMMAND, COMMAND, COMMAND, COMMAND, COMMAND, COMMAND))
 FN_RESPONSE_SET = ("Call this with two or three arguments; e.g. `%s set baseurl test.com`, or `%s set URL preview preview.test.com`. "
                    "Settings you can set here are: \n"
                    "- `url`: A domain specific to an environment, to override the *url_pattern* rule. You must call this with the environment name and then the FQDN as above. Please don't include protocol but DO ensure HTTPS is supported.\n"
@@ -26,7 +27,7 @@ FN_RESPONSE_SET = ("Call this with two or three arguments; e.g. `%s set baseurl 
                    "- `url_separator`: The charater used to join your specific environment name to the baseurl. I.e. in `https://pr27.test.com`, the `.` between `pr27` and `test.com`. Defaults to `.` " % (COMMAND, COMMAND))
 FN_RESPONSE_SET_CONFIRM = "Great, I've set %s to %s."
 FN_RESPONSE_UNSET = "Call this with the one or two arguments you called `set` with, and no value part - e.g. `%s unset baseurl`" % COMMAND
-FN_RESPONSE_CONFIG_EXISTS = "This channel is currently set up for `%s`. Some GitHub users may not be connected."
+FN_RESPONSE_CONFIG_EXISTS = "This channel is currently set up for `%s` \nbaseurl: `%s` \nurl: `%s` \nurl_pattern: `%s` \nurl_separator: `%s` \n Some GitHub users may not be connected. \n"
 FN_RESPONSE_CONFIG_NOTEXISTS = "This channel hasn't got any configuration at the moment."
 FN_RESPONSE_CONFIG_ALL_GH_KNOWN = "I know all the users oon this repository"
 FN_RESPONSE_SETUP = "Setting up `%s` in this channel. Note that you won't be able to use this channel for another project, or use that repo in another channel. You should run `set` to get your environment URLs configured."
@@ -98,11 +99,7 @@ def set(text, context):
         'url',
         'baseurl',
         'url_pattern',
-        'urlpattern',
-        'url-pattern',
         'url_separator',
-        'urlseparator',
-        'url-separator',
     ):
         return slack_response(ERR_SET_SETTING_NOT_RECOGNISED + FN_RESPONSE_SET)
 
@@ -114,8 +111,7 @@ def set(text, context):
         }
         val_type = "M"
 
-    if setting in ('urlpattern', 'url-pattern', 'url_pattern', ):
-        setting = 'url_pattern'
+    if setting == 'url_pattern':
         if len(parts) != 2:
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_SET)
         value = parts[1]
@@ -131,8 +127,7 @@ def set(text, context):
         value = parts[1]
         val_type = "S"
 
-    if setting in ('urlseparator', 'url-separator', 'url_separator', ):
-        setting = 'url_separator'
+    if setting == 'url_separator':
         if len(parts) != 2:
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_SET)
         value = parts[1]
@@ -180,11 +175,7 @@ def unset(text, context):
         'url',
         'baseurl',
         'url_pattern',
-        'urlpattern',
-        'url-pattern',
         'url_separator',
-        'urlseparator',
-        'url-separator',
     ):
         return slack_response(ERR_SET_SETTING_NOT_RECOGNISED + FN_RESPONSE_UNSET)
 
@@ -193,14 +184,12 @@ def unset(text, context):
             return slack_response(ERR_SET_SETTING_3_ARGS + FN_RESPONSE_UNSET)
         val_type = "M"
 
-    if setting in ('urlpattern', 'url-pattern', 'url_pattern'):
-        setting = 'url_pattern'
+    if setting == 'url_pattern':
         if len(parts) != 1:
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_UNSET)
         val_type = "S"
 
-    if setting in ('urlseparator', 'url-separator', 'url_separator'):
-        setting = 'url_separator'
+    if setting == 'url_separator':
         if len(parts) != 1:
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_UNSET)
         val_type = "S"
@@ -251,7 +240,8 @@ def config(text, context):
     entries = table.scan()
     for entry in entries['Items']:
         if entry['slack_channelid'] == context['channel_id']:
-            return slack_response(FN_RESPONSE_CONFIG_EXISTS % entry['repository'])
+            return slack_response(FN_RESPONSE_CONFIG_EXISTS % (entry['repository'], entry['setting_baseurl'], entry['setting_url'], entry['setting_url_pattern'], entry['setting_url_separator']))
+    
     return connect_github_user(FN_RESPONSE_CONFIG_NOTEXISTS, entry['repository'], entry['slack_channelid'], FN_RESPONSE_CONFIG_ALL_GH_KNOWN)
 
 
