@@ -24,7 +24,7 @@ FN_RESPONSE_SET = ("Call this with two or three arguments; e.g. `%s set basedoma
                    "- `url`: A domain specific to an environment, to override the *url_pattern* rule. You must call this with the environment name and then the FQDN as above. Please don't include protocol but DO ensure HTTPS is supported.\n"
                    "- `urlpattern`: The pattern used to generate URLs for environments. Defaults to `https://{environment}{urlseparator}{basedomain}/`. Please include all those 3 variables in that format.\n"
                    "- `basedomain`: The domain: if your PR environment is at `https://pr27.test.com`, this is `test.com`. This will be used to create all environment URLs not explicitly specified.\n"
-                   "- `urlseparator`: The charater used to join your specific environment name to the basedomain. I.e. in `https://pr27.test.com`, the `.` between `pr27` and `test.com`. Defaults to `.` " % (COMMAND, COMMAND))
+                   "- `urlseparator`: The character used to join your specific environment name to the basedomain. I.e. in `https://pr27.test.com`, the `.` between `pr27` and `test.com`. Defaults to `.` " % (COMMAND, COMMAND))
 FN_RESPONSE_SET_CONFIRM = "Great, I've set %s to %s."
 FN_RESPONSE_UNSET = "Call this with the one or two arguments you called `set` with, and no value part - e.g. `%s unset basedomain`" % COMMAND
 FN_RESPONSE_GET_EXISTS = "This channel is currently set up for `%s` \nbasedomain: `%s` \n url: `%s` \n url_pattern: `%s` \n urlseparator: `%s` \n Some GitHub users may not be connected."
@@ -328,7 +328,7 @@ def bye(text, context):
 
 def deploy(text, context):
     """
-    Manually trigegrs a deployment to a specific environment
+    Manually triggers a deployment to a specific environment
     """
     parts = text.split()
     if len(parts) != 3:
@@ -541,7 +541,7 @@ def receive(event, context):
 
 def response(body, status=200):
     """
-    Builds the data strcture for an AWS Lambda reply
+    Builds the data structure for an AWS Lambda reply
     """
     response = {
         "statusCode": int(status),
