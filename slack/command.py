@@ -13,6 +13,13 @@ import boto3
 
 COMMAND = os.environ['COMMAND']
 
+SET_OPTIONS = {
+        "basedomain": "baseurl",
+        "urlpattern": "url_pattern",
+        "urlseparator": "url_separator",
+        "url": "url"
+    }
+
 FN_RESPONSE_HELP = ("There are a few things you can ask me to do. "
                     "Try `%s setup signal-noise/reponame` to get started, "
                     "or `%s get` to see what's going on in this channel. "
@@ -27,7 +34,7 @@ FN_RESPONSE_SET = ("Call this with two or three arguments; e.g. `%s set basedoma
                    "- `urlseparator`: The character used to join your specific environment name to the basedomain. I.e. in `https://pr27.test.com`, the `.` between `pr27` and `test.com`. Defaults to `.` " % (COMMAND, COMMAND))
 FN_RESPONSE_SET_CONFIRM = "Great, I've set %s to %s."
 FN_RESPONSE_UNSET = "Call this with the one or two arguments you called `set` with, and no value part - e.g. `%s unset basedomain`" % COMMAND
-FN_RESPONSE_GET_EXISTS = "This channel is currently set up for `%s` \nbasedomain: `%s` \n url: `%s` \n url_pattern: `%s` \n urlseparator: `%s` \n Some GitHub users may not be connected."
+FN_RESPONSE_GET_EXISTS = "This channel is currently set up for `%s` \nbasedomain: `%s` \n url: `%s` \n urlpattern: `%s` \n urlseparator: `%s` \n Some GitHub users may not be connected."
 FN_RESPONSE_GET_NOTEXISTS = "This channel hasn't got any configuration at the moment."
 FN_RESPONSE_GET_ALL_GH_KNOWN = "I know all the users on this repository"
 FN_RESPONSE_SETUP = "Setting up `%s` in this channel. Note that you won't be able to use this channel for another project, or use that repo in another channel. You should run `set` to get your environment URLs configured."
@@ -580,12 +587,7 @@ def validate_input(text, command_response):
     parts = text.split()
     setting = format_input(parts[0].lower())
 
-    if setting not in (
-        'url',
-        'baseurl',
-        'url_pattern',
-        'url_separator',
-    ):
+    if setting not in SET_OPTIONS.keys():
         return slack_response(ERR_SET_SETTING_NOT_RECOGNISED + command_response)
 
     return (parts, setting)
@@ -595,14 +597,7 @@ def format_input(setting):
     """
     Formats valid input setting to db keyword
     """
-    options = {
-        "basedomain": "baseurl",
-        "urlpattern": "url_pattern",
-        "urlseparator": "url_separator",
-        "url": "url"
-    }
-
-    return options.get(setting, "None")
+    return SET_OPTIONS.get(setting, None)
 
 
 def get_form_variable_value(form_var):
