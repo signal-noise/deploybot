@@ -572,34 +572,38 @@ def call_function(command_text, context):
         logging.error(e)
         return slack_response(ERR_NO_FUNC_FOUND)
 
+
 def validate_input(text, command_response):
     """
     Validates user input and formats it for processing
     """
     parts = text.split()
-    setting = parts[0].lower()
+    setting = format_input(parts[0].lower())
 
     if setting not in (
         'url',
-        'basedomain',
-        'urlpattern',
-        'urlseparator',
+        'baseurl',
+        'url_pattern',
+        'url_separator',
     ):
         return slack_response(ERR_SET_SETTING_NOT_RECOGNISED + command_response)
 
-    setting = format_validated_input(setting)
     return (parts, setting)
 
-def format_validated_input(setting):
+
+def format_input(setting):
     """
     Formats valid input setting to db keyword
     """
-    return {
+    options = {
         "basedomain": "baseurl",
         "urlpattern": "url_pattern",
         "urlseparator": "url_separator",
         "url": "url"
-    }[setting]
+    }
+
+    return options.get(setting, "None")
+
 
 def get_form_variable_value(form_var):
     """
