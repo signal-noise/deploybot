@@ -27,7 +27,7 @@ FN_RESPONSE_SET = ("Call this with two or three arguments; e.g. `%s set basedoma
                    "- `urlseparator`: The charater used to join your specific environment name to the basedomain. I.e. in `https://pr27.test.com`, the `.` between `pr27` and `test.com`. Defaults to `.` " % (COMMAND, COMMAND))
 FN_RESPONSE_SET_CONFIRM = "Great, I've set %s to %s."
 FN_RESPONSE_UNSET = "Call this with the one or two arguments you called `set` with, and no value part - e.g. `%s unset basedomain`" % COMMAND
-FN_RESPONSE_GET_EXISTS = "This channel is currently set up for `%s` \nbasedomain: `%s` \nurl: `%s` \nurl_pattern: `%s` \nurlseparator: `%s` \n Some GitHub users may not be connected. \n"
+FN_RESPONSE_GET_EXISTS = "This channel is currently set up for `%s` \nbasedomain: `%s` \nurl: `%s` \nurl_pattern: `%s` \nurlseparator: `%s` \n Some GitHub users may not be connected."
 FN_RESPONSE_GET_NOTEXISTS = "This channel hasn't got any configuration at the moment."
 FN_RESPONSE_GET_ALL_GH_KNOWN = "I know all the users on this repository"
 FN_RESPONSE_SETUP = "Setting up `%s` in this channel. Note that you won't be able to use this channel for another project, or use that repo in another channel. You should run `set` to get your environment URLs configured."
