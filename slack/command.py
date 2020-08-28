@@ -19,15 +19,15 @@ FN_RESPONSE_HELP = ("There are a few things you can ask me to do. "
                     "There's `%s hello` to connect your Github and Slack accounts, and `%s bye` to undo that. "
                     "There's also `%s reset` if you want to start over on this channel's configuration."
                     "To see information about setting variables, try `%s set`" % (COMMAND, COMMAND, COMMAND, COMMAND, COMMAND, COMMAND))
-FN_RESPONSE_SET = ("Call this with two or three arguments; e.g. `%s set base_domain test.com`, or `%s set URL preview preview.test.com`. "
+FN_RESPONSE_SET = ("Call this with two or three arguments; e.g. `%s set basedomain test.com`, or `%s set URL preview preview.test.com`. "
                    "Settings you can set here are: \n"
                    "- `url`: A domain specific to an environment, to override the *url_pattern* rule. You must call this with the environment name and then the FQDN as above. Please don't include protocol but DO ensure HTTPS is supported.\n"
-                   "- `url_pattern`: The pattern used to generate URLs for environments. Defaults to `https://{environment}{url_separator}{base_domain}/`. Please include all those 3 variables in that format.\n"
-                   "- `base_domain`: The domain: if your PR environment is at `https://pr27.test.com`, this is `test.com`. This will be used to create all environment URLs not explicitly specified.\n"
-                   "- `url_separator`: The charater used to join your specific environment name to the base_domain. I.e. in `https://pr27.test.com`, the `.` between `pr27` and `test.com`. Defaults to `.` " % (COMMAND, COMMAND))
+                   "- `urlpattern`: The pattern used to generate URLs for environments. Defaults to `https://{environment}{urlseparator}{basedomain}/`. Please include all those 3 variables in that format.\n"
+                   "- `basedomain`: The domain: if your PR environment is at `https://pr27.test.com`, this is `test.com`. This will be used to create all environment URLs not explicitly specified.\n"
+                   "- `urlseparator`: The charater used to join your specific environment name to the basedomain. I.e. in `https://pr27.test.com`, the `.` between `pr27` and `test.com`. Defaults to `.` " % (COMMAND, COMMAND))
 FN_RESPONSE_SET_CONFIRM = "Great, I've set %s to %s."
-FN_RESPONSE_UNSET = "Call this with the one or two arguments you called `set` with, and no value part - e.g. `%s unset base_domain`" % COMMAND
-FN_RESPONSE_GET_EXISTS = "This channel is currently set up for `%s` \nbase_domain: `%s` \nurl: `%s` \nurl_pattern: `%s` \nurl_separator: `%s` \n Some GitHub users may not be connected. \n"
+FN_RESPONSE_UNSET = "Call this with the one or two arguments you called `set` with, and no value part - e.g. `%s unset basedomain`" % COMMAND
+FN_RESPONSE_GET_EXISTS = "This channel is currently set up for `%s` \nbasedomain: `%s` \nurl: `%s` \nurl_pattern: `%s` \nurlseparator: `%s` \n Some GitHub users may not be connected. \n"
 FN_RESPONSE_GET_NOTEXISTS = "This channel hasn't got any configuration at the moment."
 FN_RESPONSE_GET_ALL_GH_KNOWN = "I know all the users on this repository"
 FN_RESPONSE_SETUP = "Setting up `%s` in this channel. Note that you won't be able to use this channel for another project, or use that repo in another channel. You should run `set` to get your environment URLs configured."
@@ -43,7 +43,7 @@ ERR_SET = "Something went wrong. Have you set this channel up with a repo yet?"
 ERR_SET_SETTING_NOT_RECOGNISED = "I didn't recognise that setting. "
 ERR_SET_SETTING_2_ARGS = "That setting needs a single value; unset with just the setting name. "
 ERR_SET_SETTING_3_ARGS = "That setting needs two values; unset with the setting name and the first argument. "
-ERR_SET_URLPATTERN_SPECIFIC_VARS = "You need to include all of the following variables in your pattern: `{environment}`, `{url_separator}`, `{base_domain}`"
+ERR_SET_URLPATTERN_SPECIFIC_VARS = "You need to include all of the following variables in your pattern: `{environment}`, `{urlseparator}`, `{basedomain}`"
 ERR_SETUP_PARAM_MISSING = "You need to tell me which repo. Try `%s setup username/reponame`" % COMMAND
 ERR_SETUP_PARAM_FORMAT = ("The repo name should be two parts; the GitHub username and the actual"
                           " repository name. e.g. the React library's repo would be `facebook/react`")
@@ -84,7 +84,6 @@ def help(*args, **kwargs):
     """
     return slack_response(FN_RESPONSE_HELP)
 
-
 def set(text, context):
     """
     Allows individual settings to be created
@@ -92,16 +91,7 @@ def set(text, context):
     if len(text) == 0 or text.strip() == '':
         return slack_response(FN_RESPONSE_SET)
 
-    parts = text.split()
-    setting = parts[0].lower()
-
-    if setting not in (
-        'url',
-        'base_domain',
-        'url_pattern',
-        'url_separator',
-    ):
-        return slack_response(ERR_SET_SETTING_NOT_RECOGNISED + FN_RESPONSE_SET)
+    parts, setting = validate_input(text, FN_RESPONSE_SET)
 
     if setting == 'url':
         if len(parts) != 3:
@@ -116,18 +106,16 @@ def set(text, context):
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_SET)
         value = parts[1]
         if ('{environment}' not in value and
-            '{url_separator}' not in value and
-                '{base_domain}' not in value):
+            '{urlseparator}' not in value and
+                '{basedomain}' not in value):
             return slack_response(ERR_SET_URLPATTERN_SPECIFIC_VARS)
         val_type = "S"
 
-    if setting == 'base_domain':
+    if setting == 'baseurl':
         if len(parts) != 2:
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_SET)
         value = parts[1]
         val_type = "S"
-        # change setting keyword for db compatibility with updated interface syntax
-        setting = "baseurl" 
 
     if setting == 'url_separator':
         if len(parts) != 2:
@@ -170,16 +158,7 @@ def unset(text, context):
     if text is None or len(text) == 0:
         return slack_response(FN_RESPONSE_UNSET)
 
-    parts = text.split()
-    setting = parts[0].lower()
-
-    if setting not in (
-        'url',
-        'base_domain',
-        'url_pattern',
-        'url_separator',
-    ):
-        return slack_response(ERR_SET_SETTING_NOT_RECOGNISED + FN_RESPONSE_UNSET)
+    parts, setting = validate_input(text, FN_RESPONSE_UNSET)
 
     if setting == 'url':
         if len(parts) != 2:
@@ -196,12 +175,10 @@ def unset(text, context):
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_UNSET)
         val_type = "S"
 
-    if setting == 'base_domain':
+    if setting == 'baseurl':
         if len(parts) != 1:
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_UNSET)
         val_type = "S"
-        # change setting keyword for db compatibility with updated interface syntax
-        setting = 'baseurl'
 
     setting = 'setting_{}'.format(setting)
 
@@ -595,6 +572,34 @@ def call_function(command_text, context):
         logging.error(e)
         return slack_response(ERR_NO_FUNC_FOUND)
 
+def validate_input(text, command_response):
+    """
+    Validates user input and formats it for processing
+    """
+    parts = text.split()
+    setting = parts[0].lower()
+
+    if setting not in (
+        'url',
+        'basedomain',
+        'urlpattern',
+        'urlseparator',
+    ):
+        return slack_response(ERR_SET_SETTING_NOT_RECOGNISED + command_response)
+
+    setting = format_validated_input(setting)
+    return (parts, setting)
+
+def format_validated_input(setting):
+    """
+    Formats valid input setting to db keyword
+    """
+    return {
+        "basedomain": "baseurl",
+        "urlpattern": "url_pattern",
+        "urlseparator": "url_separator",
+        "url": "url"
+    }[setting]
 
 def get_form_variable_value(form_var):
     """
