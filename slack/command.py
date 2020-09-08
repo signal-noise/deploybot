@@ -587,7 +587,7 @@ def validate_input(text, command_response):
     parts = text.split()
     setting = format_input(parts[0].lower())
 
-    if setting not in SET_OPTIONS.keys():
+    if setting not in SET_OPTIONS.values():
         return slack_response(ERR_SET_SETTING_NOT_RECOGNISED + command_response)
 
     return (parts, setting)
