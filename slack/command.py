@@ -229,6 +229,8 @@ def get(text, context):
     entries = table.scan()
     for entry in entries['Items']:
         if entry['slack_channelid'] == context['channel_id']:
+            if 'setting_baseurl' in entry and 'setting_basedomain' not in entry: # for backward compatibility
+                entry['setting_basedomain'] = entry['setting_baseurl']
             if 'setting_basedomain' not in entry:
                 entry['setting_basedomain'] = "--NOT SET--"
             if 'setting_url' not in entry:
