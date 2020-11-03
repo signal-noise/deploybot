@@ -228,8 +228,24 @@ def get(text, context):
     entries = table.scan()
     for entry in entries['Items']:
         if entry['slack_channelid'] == context['channel_id']:
-            return slack_response(FN_RESPONSE_GET_EXISTS % (entry['repository'], entry['setting_baseurl'], entry['setting_url'], entry['setting_url_pattern'], entry['setting_url_separator']))
-    
+            if 'setting_baseurl' not in entry:
+                entry['setting_baseurl'] = "--NOT SET--"
+            if 'setting_url' not in entry:
+                entry['setting_url'] = "--NOT SET--"
+            if 'setting_url_pattern' not in entry:
+                entry['setting_url_pattern'] = "--NOT SET--"
+            if 'setting_url_separator' not in entry:
+                entry['setting_url_separator'] = "--NOT SET--"
+            return slack_response(
+                FN_RESPONSE_GET_EXISTS % (
+                    entry['repository'], 
+                    entry['setting_baseurl'], 
+                    entry['setting_url'], 
+                    entry['setting_url_pattern'], 
+                    entry['setting_url_separator']
+                )
+            )
+
     return connect_github_user(FN_RESPONSE_GET_NOTEXISTS, entry['repository'], entry['slack_channelid'], FN_RESPONSE_GET_ALL_GH_KNOWN)
 
 
