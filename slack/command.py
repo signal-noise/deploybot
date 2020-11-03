@@ -14,9 +14,9 @@ import boto3
 COMMAND = os.environ['COMMAND']
 
 SET_OPTIONS = {
-        "basedomain": "baseurl",
-        "urlpattern": "url_pattern",
-        "urlseparator": "url_separator",
+        "basedomain": "basedomain",
+        "urlpattern": "urlpattern",
+        "urlseparator": "urlseparator",
         "url": "url"
     }
 
@@ -28,7 +28,7 @@ FN_RESPONSE_HELP = ("There are a few things you can ask me to do. "
                     "To see information about setting variables, try `%s set`" % (COMMAND, COMMAND, COMMAND, COMMAND, COMMAND, COMMAND))
 FN_RESPONSE_SET = ("Call this with two or three arguments; e.g. `%s set basedomain test.com`, or `%s set URL preview preview.test.com`. "
                    "Settings you can set here are: \n"
-                   "- `url`: A domain specific to an environment, to override the *url_pattern* rule. You must call this with the environment name and then the FQDN as above. Please don't include protocol but DO ensure HTTPS is supported.\n"
+                   "- `url`: A domain specific to an environment, to override the *urlpattern* rule. You must call this with the environment name and then the FQDN as above. Please don't include protocol but DO ensure HTTPS is supported.\n"
                    "- `urlpattern`: The pattern used to generate URLs for environments. Defaults to `https://{environment}{urlseparator}{basedomain}/`. Please include all those 3 variables in that format.\n"
                    "- `basedomain`: The domain: if your PR environment is at `https://pr27.test.com`, this is `test.com`. This will be used to create all environment URLs not explicitly specified.\n"
                    "- `urlseparator`: The character used to join your specific environment name to the basedomain. I.e. in `https://pr27.test.com`, the `.` between `pr27` and `test.com`. Defaults to `.` " % (COMMAND, COMMAND))
@@ -91,6 +91,7 @@ def help(*args, **kwargs):
     """
     return slack_response(FN_RESPONSE_HELP)
 
+
 def set(text, context):
     """
     Allows individual settings to be created
@@ -108,7 +109,7 @@ def set(text, context):
         }
         val_type = "M"
 
-    if setting == 'url_pattern':
+    if setting == 'urlpattern':
         if len(parts) != 2:
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_SET)
         value = parts[1]
@@ -118,13 +119,13 @@ def set(text, context):
             return slack_response(ERR_SET_URLPATTERN_SPECIFIC_VARS)
         val_type = "S"
 
-    if setting == 'baseurl':
+    if setting == 'basedomain':
         if len(parts) != 2:
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_SET)
         value = parts[1]
         val_type = "S"
 
-    if setting == 'url_separator':
+    if setting == 'urlseparator':
         if len(parts) != 2:
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_SET)
         value = parts[1]
@@ -172,17 +173,17 @@ def unset(text, context):
             return slack_response(ERR_SET_SETTING_3_ARGS + FN_RESPONSE_UNSET)
         val_type = "M"
 
-    if setting == 'url_pattern':
+    if setting == 'urlpattern':
         if len(parts) != 1:
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_UNSET)
         val_type = "S"
 
-    if setting == 'url_separator':
+    if setting == 'urlseparator':
         if len(parts) != 1:
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_UNSET)
         val_type = "S"
 
-    if setting == 'baseurl':
+    if setting == 'basedomain':
         if len(parts) != 1:
             return slack_response(ERR_SET_SETTING_2_ARGS + FN_RESPONSE_UNSET)
         val_type = "S"
@@ -228,21 +229,25 @@ def get(text, context):
     entries = table.scan()
     for entry in entries['Items']:
         if entry['slack_channelid'] == context['channel_id']:
-            if 'setting_baseurl' not in entry:
-                entry['setting_baseurl'] = "--NOT SET--"
+            if 'setting_basedomain' not in entry:
+                entry['setting_basedomain'] = "--NOT SET--"
             if 'setting_url' not in entry:
                 entry['setting_url'] = "--NOT SET--"
-            if 'setting_url_pattern' not in entry:
-                entry['setting_url_pattern'] = "--NOT SET--"
-            if 'setting_url_separator' not in entry:
-                entry['setting_url_separator'] = "--NOT SET--"
+            if 'setting_url_pattern' in entry and 'setting_urlpattern' not in entry: # for backward compatibility
+                entry['setting_urlpattern'] = entry['setting_url_pattern']
+            if 'setting_urlpattern' not in entry:
+                entry['setting_urlpattern'] = 'https://{environment}{urlseparator}{basedomain}/'
+            if 'setting_url_separator' in entry and 'setting_urlseparator' not in entry: # for backward compatibility
+                entry['setting_urlseparator'] = entry['setting_url_separator']
+            if 'setting_urlseparator' not in entry:
+                entry['setting_urlseparator'] = '.'
             return slack_response(
                 FN_RESPONSE_GET_EXISTS % (
-                    entry['repository'], 
-                    entry['setting_baseurl'], 
-                    entry['setting_url'], 
-                    entry['setting_url_pattern'], 
-                    entry['setting_url_separator']
+                    entry['repository'],
+                    entry['setting_basedomain'],
+                    entry['setting_url'],
+                    entry['setting_urlpattern'],
+                    entry['setting_urlseparator']
                 )
             )
 

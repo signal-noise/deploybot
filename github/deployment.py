@@ -332,22 +332,38 @@ def get_url_for_env(repo, env, prNumber=None):
             if 'setting_url' in entry and env in entry['setting_url']:
                 return "https://{}".format(entry['setting_url'][env])
             else:
-                if 'setting_baseurl' not in entry:
+                if 'setting_baseurl' not in entry and 'setting_basedomain' not in entry:
                     logging.warn(
                         "No URL setting found for repo {}".format(repo))
                     return None
 
-                pattern = 'https://{environment}{url_separator}{baseurl}/'
+                pattern = 'https://{environment}{urlseparator}{basedomain}/'
                 separator = '.'
                 if env[0:2] == 'pr' and prNumber is not None:
                     env = '{}{}'.format(env, prNumber)
 
-                if 'setting_url_pattern' in entry:
+                if 'setting_url_pattern' in entry: # for backward compatibility
                     pattern = entry['setting_url_pattern']
-                if 'setting_url_separator' in entry:
+                if 'setting_urlpattern' in entry:
+                    pattern = entry['setting_urlpattern']
+                if 'setting_url_separator' in entry: # for backward compatibility
                     separator = entry['setting_url_separator']
+                if 'setting_urlseparator' in entry:
+                    separator = entry['setting_urlseparator']
 
-                return pattern.format(environment=env, url_separator=separator, baseurl=entry['setting_baseurl'])
+                # for backward compatibility
+                if 'setting_baseurl' in entry and 'setting_basedomain' not in entry:
+                    entry['setting_basedomain'] = entry['setting_baseurl']
+                if 'setting_url_separator' in entry and 'setting_urlseparator' not in entry:
+                    entry['setting_urlseparator'] = entry['setting_url_separator']
+
+                return pattern.format(
+                    environment=env,
+                    url_separator=separator, # for backward compatibility
+                    urlseparator=separator,
+                    baseurl=entry['setting_basedomain'], # for backward compatibility
+                    basedomain=entry['setting_basedomain'],
+                )
 
     logging.error("No repo {} found in DB for get_url".format(repo))
     return None

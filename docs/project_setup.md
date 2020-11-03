@@ -33,7 +33,7 @@ to be private.
 
 Setup the channel as deploybot's interface for your repo with
 `/<your-command> setup repouser/reponame`, and then
-`/<your-command> set baseurl devdomain.com`, perhaps followed by
+`/<your-command> set basedomain devdomain.com`, perhaps followed by
 `/<your-command> set url production properdomain.com` and any other setup you'd
 like to do.
 
