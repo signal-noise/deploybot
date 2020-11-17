@@ -68,7 +68,7 @@ def push(data=None):
     """
     env = None
 
-    if data['ref'] in ('refs/heads/master', 'refs/heads/main'):
+    if data['ref'] in ('refs/heads/main', 'refs/heads/main'):
         env = 'preview'
     elif data['ref'][:18] == 'refs/heads/release':
         env = 'test'
