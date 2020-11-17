@@ -14,5 +14,5 @@ with a couple of extra items; this is all the moments a deployment is triggered:
   `release/v1.3`) triggers a build to the `test` environment
 - Manual triggers from Slack can trigger builds to `staging` of anything that's
   already been built to `test`
-- Pushing tags with names starting with a `v` (e.g. `v1.3`) will trigger a build
-  to the `production` environment
+- Pushing tags with names starting with a `v` or a digit (e.g. `v1.3` or `1.3.4`) will
+  trigger a build to the `production` environment
