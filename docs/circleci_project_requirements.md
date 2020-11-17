@@ -9,7 +9,7 @@ requirements placed on the CircleCI project configuration, found in the repo's
 `.circleci/circleyml` file.
 
 This repo's own
-[config file](https://github.com/signal-noise/deploybot/tree/master/.circleci/config.yml)
+[config file](https://github.com/signal-noise/deploybot/tree/main/.circleci/config.yml)
 follows the recommendations so can be used as an example.
 
 Firstly, the config shouldn't automatically trigger any builds on its own; leave

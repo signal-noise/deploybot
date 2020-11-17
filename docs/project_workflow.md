@@ -8,7 +8,7 @@ with a couple of extra items; this is all the moments a deployment is triggered:
   linked in a comment on the PR
 - Each subsequent push to a branch with an open PR triggers a rebuild of that
   `PR` environment
-- Each push to `master` (usually a merge from a PR) triggers a build of the
+- Each push to `main` (usually a merge from a PR) triggers a build of the
   `Preview` environment
 - Each push to any branch with a name starting with `release` (e.g.
   `release/v1.3`) triggers a build to the `test` environment

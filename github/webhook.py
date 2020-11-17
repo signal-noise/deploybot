@@ -68,11 +68,14 @@ def push(data=None):
     """
     env = None
 
-    if data['ref'] == 'refs/heads/master':
+    if data['ref'] in ('refs/heads/master', 'refs/heads/main'):
         env = 'preview'
     elif data['ref'][:18] == 'refs/heads/release':
         env = 'test'
     elif data['ref'][:11] == 'refs/tags/v':
+        env = 'production'
+    elif (data['ref'][:9] == 'refs/tags'
+            and data['ref'][10:11].isdigit()):
         env = 'production'
 
     if env is not None:

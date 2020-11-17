@@ -24,7 +24,7 @@ this please submit a PR!
 ## Submitting changes
 
 Please send a
-[GitHub Pull Request to deploybot](https://github.com/signal-noise/deploybot/pull/new/master)
+[GitHub Pull Request to deploybot](https://github.com/signal-noise/deploybot/pull/new/main)
 with a clear list of what you've done (read more about
 [pull requests](http://help.github.com/pull-requests/)). When you send a pull
 request, please make sure you've covered off all the points in the template.
@@ -54,10 +54,10 @@ in place are:
 In effect this means:
 
 - Don't worry about individual commits. They will be preserved, but not on the
-  main `master` branch history, so feel free to commit early and often, using
+  main `main` branch history, so feel free to commit early and often, using
   git as a save mechanism.
 - Your Pull Request title and description become very important; they are the
-  history of the master branch and explain all the changes.
+  history of the main branch and explain all the changes.
 - You ought to be able to find any previous version easily using GitHub tabs, or
   [Releases](https://github.com/signal-noise/deploybot/releases)
 
