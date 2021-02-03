@@ -67,11 +67,9 @@ with a couple of extra items; please
 Please read the [Installation guide](./docs/installation.md) in the
 documentation.
 
-## Contributing
+## Contributors ✨
 
 Please read about [submitting contributions](./docs/CONTRIBUTING.md).
-
-## Contributors ✨
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
 
@@ -81,6 +79,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <table>
   <tr>
     <td align="center"><a href="https://github.com/nattog"><img src="https://avatars.githubusercontent.com/u/38443772?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Guy Purssell</b></sub></a><br /><a href="https://github.com/signal-noise/deploybot/commits?author=nattog" title="Code">💻</a></td>
+    <td align="center"><a href="http://www.marcelkornblum.com"><img src="https://avatars.githubusercontent.com/u/1162347?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Marcel Kornblum</b></sub></a><br /><a href="https://github.com/signal-noise/deploybot/commits?author=marcelkornblum" title="Code">💻</a></td>
   </tr>
 </table>
 
@@ -90,3 +89,4 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
 This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
+
