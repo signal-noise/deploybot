@@ -6,6 +6,15 @@
   "commit": false,
   "contributors": [
     {
+      "login": "nattog",
+      "name": "Guy Purssell",
+      "avatar_url": "https://avatars.githubusercontent.com/u/38443772?v=4",
+      "profile": "https://github.com/nattog",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
       "login": "marcelkornblum",
       "name": "Marcel Kornblum",
       "avatar_url": "https://avatars.githubusercontent.com/u/1162347?v=4",
