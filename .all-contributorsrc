@@ -1,0 +1,24 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "contributors": [
+    {
+      "login": "marcelkornblum",
+      "name": "Marcel Kornblum",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1162347?v=4",
+      "profile": "http://www.marcelkornblum.com",
+      "contributions": [
+        "code"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "projectName": "deploybot",
+  "projectOwner": "signal-noise",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "skipCi": true
+}
