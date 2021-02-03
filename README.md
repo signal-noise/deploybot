@@ -67,11 +67,9 @@ with a couple of extra items; please
 Please read the [Installation guide](./docs/installation.md) in the
 documentation.
 
-## Contributing
+## Contributors ✨
 
 Please read about [submitting contributions](./docs/CONTRIBUTING.md).
-
-## Contributors ✨
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
 
