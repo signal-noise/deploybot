@@ -623,7 +623,9 @@ def response(body=None, status=200):
 
 
 def generate_jwt():
-    private_key = os.environ['GITHUB_APP_PK']
+    client = boto3.client('ssm')
+    response=client.get_parameter(Name='/deploybot-eu-west-2/prod/github_pk', WithDecryption=True)
+    private_key = response['Parameter']['Value']
     claim = {
         # issued at time
         "iat": int(time.time()),
