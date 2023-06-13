@@ -1,0 +1,7 @@
+- apiVersion: backstage.io/v1beta1
+  kind: System
+  metadata:
+    name: deploybot
+    title: deploybot
+    namespace: economist-impact
+    description: deploybot for SignalNoise Economist Impact Project
