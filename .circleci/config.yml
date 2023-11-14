@@ -39,7 +39,7 @@ jobs:
 
 notify:
   webhooks:
-    - url: https://dwlnd1wnmh.execute-api.eu-west-2.amazonaws.com/prod/circleci/webhook
+    - url: https://g0iuexni0j.execute-api.eu-west-2.amazonaws.com/prod/circleci/webhook
 
 workflows:
   version: 2
