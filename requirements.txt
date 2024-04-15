@@ -1,7 +1,7 @@
 asn1crypto==0.24.0
 cffi==1.11.5
 cryptography==3.3.2
-idna==2.7
+idna==3.7
 ipaddress==1.0.22
 pycparser==2.19
 PyJWT==1.7.0
